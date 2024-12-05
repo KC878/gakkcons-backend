@@ -16,9 +16,13 @@ const dashboardRouter_2 = require('./src/__01__Dashboard/listTeachers/routes');
 const consultationOverviewRoutes = require('./src/__02__TeacherInformationPage/consultation_overview/routes');
 const consultationUpdateRoutes = require('./src/__02__TeacherInformationPage/state_purpose/routes');
 const notificationRoutes = require('./src/__03__Notifications/notifications_list/routes');
+const profileInfoRoutes = require('./src/__04__Profile/profile_info/routes');
+
 
 // Import notification controller
 const notificationController = require('./src/__03__Notifications/notifications_list/controller');
+
+
 
 // Load environment variables from .env file
 dotenv.config();
@@ -41,6 +45,8 @@ app.use('/api/appointments', consultationOverviewRoutes);  // Updated appointmen
 app.use('/api/appointments/purpose', consultationUpdateRoutes);
 
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/profile', profileInfoRoutes);
+
 
 // Set up Socket.IO for notifications
 notificationController.setSocketIO(io);
