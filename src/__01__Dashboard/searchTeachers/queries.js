@@ -1,15 +1,18 @@
-require('dotenv').config(); // Load environment variables
 const pool = require('./../../db'); // Import the pool from db.js
 
-// Function to search for teacher names
+
+// In your queries file (queries.js)
 const search = async (query) => {
   const client = await pool.connect(); // Connect to the database
   try {
     const res = await client.query(
-      `SELECT first_name 
-       FROM users 
-       WHERE first_name ILIKE $1 
-       ORDER BY first_name 
+      `SELECT u.first_name, u.last_name
+       FROM users u
+       JOIN user_roles ur ON u.user_id = ur.user_id
+       JOIN roles r ON ur.role_id = r.role_id
+       WHERE r.role_id = 2 -- Filter for faculty role
+       AND u.first_name ILIKE $1 
+       ORDER BY u.first_name 
        LIMIT 10`,
       [`%${query}%`] // Use ILIKE for case-insensitive matching
     );
