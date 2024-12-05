@@ -89,8 +89,8 @@ CREATE TABLE Status (
 -- Create Appointments Table
 CREATE TABLE Appointments (
     appointment_id SERIAL PRIMARY KEY,
-    student_id VARCHAR(255) NOT NULL,
-    faculty_id VARCHAR(255) NOT NULL,
+    student_id INT NOT NULL,
+    faculty_id INT NOT NULL,
     mode_id INT NOT NULL,
     status_id INT NOT NULL,
     reason TEXT,
