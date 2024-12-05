@@ -17,6 +17,7 @@ const consultationOverviewRoutes = require('./src/__02__TeacherInformationPage/c
 const consultationUpdateRoutes = require('./src/__02__TeacherInformationPage/state_purpose/routes');
 const notificationRoutes = require('./src/__03__Notifications/notifications_list/routes');
 const profileInfoRoutes = require('./src/__04__Profile/profile_info/routes');
+const editprofileInfoRoutes = require('./src/__04__Profile/edit_profile/routes');
 
 
 // Import notification controller
@@ -46,6 +47,7 @@ app.use('/api/appointments/purpose', consultationUpdateRoutes);
 
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/profile', profileInfoRoutes);
+app.use('/api/edit_profile', editprofileInfoRoutes);
 
 
 // Set up Socket.IO for notifications
