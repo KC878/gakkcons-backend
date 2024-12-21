@@ -11,6 +11,4 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-console.log("DB_PASSWORD:", process.env.DB_PASSWORD);
-
 module.exports = pool;
