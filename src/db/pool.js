@@ -1,6 +1,6 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const { Pool } = require('pg');
+const { Pool } = require("pg");
 
 // Create a pool connection to PostgreSQL
 const pool = new Pool({
@@ -11,6 +11,6 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
+console.log("DB_PASSWORD:", process.env.DB_PASSWORD);
 
 module.exports = pool;
