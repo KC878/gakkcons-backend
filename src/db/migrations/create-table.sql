@@ -22,14 +22,12 @@ CREATE TABLE User_Roles (
     FOREIGN KEY (role_id) REFERENCES Roles(role_id) ON DELETE CASCADE
 );
 
---------------------
 -- Create Programs Table
 CREATE TABLE Programs (
     program_id SERIAL PRIMARY KEY,
-    program_name VARCHAR(100) NOT NULL,
+    program_name VARCHAR(100) NOT NULL
 );
 
--- admin will be the one to insert that part 
 -- Create Subjects Table
 CREATE TABLE Subjects (
     subject_id SERIAL PRIMARY KEY,
@@ -69,11 +67,6 @@ CREATE TABLE User_Subjects (
     FOREIGN KEY (subject_id) REFERENCES Subjects(subject_id) ON DELETE CASCADE
 );
 
-
-
-
-
--------------------------------------------------> 
 -- Create Mode Table
 CREATE TABLE Mode (
     mode_id SERIAL PRIMARY KEY,
