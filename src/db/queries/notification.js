@@ -16,15 +16,12 @@ const getNotifications = `
   ORDER BY a.timestamp DESC;  -- Order by timestamp for the most recent appointments
 `;
 
-
 const updateAppointmentStatus = `
   UPDATE Appointments
   SET status_id = $1  -- Set new status
   WHERE appointment_id = $2  -- Find the appointment by ID
   RETURNING appointment_id, student_id, faculty_id, mode_id, status_id, reason, scheduled_date, meet_link, timestamp;
 `;
-
-
 
 module.exports = {
   getNotifications,

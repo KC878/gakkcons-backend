@@ -4,8 +4,8 @@ const bodyParser = require("body-parser");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const notificationController = require("./__03__Notifications/notifications_list/controller");
 const api = require("./routes");
+const { setSocketIO, startNotificationEmitter } = require("./utils/socketIO");
 
 // Load environment variables from .env file
 dotenv.config();
@@ -19,8 +19,8 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 // Set up Socket.IO for notifications
-notificationController.setSocketIO(io);
-notificationController.startNotificationEmitter();
+setSocketIO(io);
+startNotificationEmitter();
 
 // Socket.IO connection to handle real-time interactions
 io.on("connection", (socket) => {

@@ -1,3 +1,0 @@
-npm install express socket.io pg
-
--- Necessary install to use real-time notification
