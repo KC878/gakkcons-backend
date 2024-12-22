@@ -1,4 +1,3 @@
-// Query to get all appointments with date, time, type, and status
 const getAppointments = `
   SELECT 
     a.appointment_id, 
@@ -27,7 +26,15 @@ const getAppointmentById = `
   WHERE a.appointment_id = $1;
 `;
 
+const updateReason = `
+  UPDATE Appointments
+  SET reason = $1
+  WHERE appointment_id = $2
+  RETURNING *;
+`;
+
 module.exports = {
   getAppointments,
-  getAppointmentById
+  getAppointmentById,
+  updateReason,
 };
