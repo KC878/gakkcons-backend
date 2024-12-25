@@ -1,0 +1,152 @@
+[33mcommit 039c02b55bb59c69ca11f35c67fa608392bb4d5a[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m
+Merge: 54cce59 c5dfbed
+Author: Margie Fabores <faboresm@gmail.com>
+Date:   Sun Dec 22 17:31:32 2024 +0800
+
+    Merge pull request #1 from KC878/refactor/app-structures
+    
+    Refactor/app structures
+
+[33mcommit c5dfbede3ca094ab83e6291b58d54d36adf8ff25[m[33m ([m[1;31morigin/refactor/app-structures[m[33m)[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sun Dec 22 17:27:41 2024 +0800
+
+    added notification route to index file routes
+
+[33mcommit 8076c2005bac5d2433389b8c1f336ddc33122fc0[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sun Dec 22 17:22:23 2024 +0800
+
+    move initial notification-related API to its suitable respective directories and files
+
+[33mcommit 54a11f439cbf049ad19c144061c0d127e0643297[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sun Dec 22 14:21:52 2024 +0800
+
+    added check auth middleware to teacher routes
+
+[33mcommit f982ccbc1795a7bacd9d214ddb662d1c0b04119b[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sun Dec 22 13:41:05 2024 +0800
+
+    transfer teacher-related API to its suitable respective directories and files
+
+[33mcommit e1175bb77ed8529e61f5f808bf8edf8a2f8f9e98[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sun Dec 22 13:30:58 2024 +0800
+
+    move appointments-related API to its suitable respective directories and files
+
+[33mcommit dd62b109a6082f31103ef8768456efbc5bb37338[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sat Dec 21 21:43:04 2024 +0800
+
+    added scripts for dev and db migration
+
+[33mcommit 8015eeab715e3b0a1419a8ae0de07079625d23c9[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sat Dec 21 20:49:32 2024 +0800
+
+    rearrange user-ralated API to its suitable respective directories and files
+
+[33mcommit d265a542aefc1296827e5ac516868b7b69f52d77[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sat Dec 21 19:39:31 2024 +0800
+
+    move db file to db directory and renamed to pool
+
+[33mcommit 43cf367f6d4542307a01698fb07558cd6209fc09[m[33m ([m[1;31morigin/old-version[m[33m)[m
+Author: Margie Fabores <faboresm@gmail.com>
+Date:   Sat Dec 21 19:20:17 2024 +0800
+
+    Delete .env
+
+[33mcommit bf0e51ba1d356ba6a27dddde430e7b2fa07b6f67[m
+Author: Margie Fabores <faboresm@gmail.com>
+Date:   Sat Dec 21 19:20:02 2024 +0800
+
+    Delete node_modules directory
+
+[33mcommit deaed57b4983cec6a29c9c22457ee311f5192753[m
+Author: margiefabores <faboresm@gmail.com>
+Date:   Sat Dec 21 19:18:58 2024 +0800
+
+    update .gitignore file
+
+[33mcommit c4fa610b026674e9bcff179607c472147f5df159[m[33m ([m[1;31morigin/__04__Profile[m[33m)[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Fri Dec 6 01:33:51 2024 +0800
+
+    Profile: Edit Profile finished
+
+[33mcommit 49c10384e090b460c0a92a07139c5ba72b74004e[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Fri Dec 6 00:59:21 2024 +0800
+
+    Profile Done: Test --> after the user logs in a token will be generated. Use that as authorization so that whoever has login, that students info will be displayed in profile: email, first_name, and last_name
+
+[33mcommit 45ac56a3c285ab07f35145000cf9e194d5aaecf8[m[33m ([m[1;31morigin/__03__Notifications[m[33m)[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Fri Dec 6 00:08:56 2024 +0800
+
+    Notifications: Notification list -also added realtime update config in the backend if the status is updated
+
+[33mcommit 6f68739186a11022428ff00e7cf77f71805bf94b[m[33m ([m[1;31morigin/__02__TeacherInformationPage[m[33m)[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Thu Dec 5 17:13:43 2024 +0800
+
+    State Purpose: Done
+
+[33mcommit 2dcfc03683c34d71a29b8fbe55abeb0bdfd32836[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Thu Dec 5 16:53:09 2024 +0800
+
+    Consulation Overview Done
+
+[33mcommit 2f4faca293e357fc209e6f5203d408e058587fc7[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Thu Dec 5 14:21:48 2024 +0800
+
+    Dashborad: ListTeachers
+
+[33mcommit 495dfc9264e9b39a2de328056b393bbfa75270af[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Thu Dec 5 13:56:40 2024 +0800
+
+    Dasboard: Search Bard Done
+
+[33mcommit bcd1ea4cad44d4a05c5f2f50854da157db3e4e47[m[33m ([m[1;31morigin/upSignUp_assigningUserRoles[m[33m)[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Thu Dec 5 12:58:56 2024 +0800
+
+    Modified Signup:Automatically new User assigned to Student and Inserted into user_roles Table, Updated the Database
+
+[33mcommit 52097f528fb5531e069dcbe0577e371323a8be02[m[33m ([m[1;31morigin/forgotPassword[m[33m)[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Wed Dec 4 23:16:39 2024 +0800
+
+    Forgot Password Branch
+
+[33mcommit 54cce599beb1b7ef44f41a45c89dfbe09b24cab3[m
+Author: Kent Christian E. Cagadas <46562432+KC878@users.noreply.github.com>
+Date:   Wed Dec 4 21:37:24 2024 +0800
+
+    Delete node_modules directory
+
+[33mcommit 324577ff45417b48999ec7c27b89ea93b6abc264[m
+Author: Kent Christian E. Cagadas <46562432+KC878@users.noreply.github.com>
+Date:   Wed Dec 4 21:35:45 2024 +0800
+
+    Delete .env
+
+[33mcommit 7f5884aa373987cdf3a7ff0d4c8dbdc8cb1e3b32[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Wed Dec 4 21:27:14 2024 +0800
+
+    Sign Up and Login Done
+
+[33mcommit a90848cb7776e77710951c2a920f95562c5825c8[m
+Author: Kent Chrisitan <kentcagadas19@gmail.com>
+Date:   Wed Dec 4 21:00:11 2024 +0800
+
+    Sign Up Done

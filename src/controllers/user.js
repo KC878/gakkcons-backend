@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const userQueries = require("./../db/queries/user");
 const pool = require("./../db/pool");
 
+
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -104,7 +105,7 @@ const forgotPassword = async (req, res) => {
         pass: process.env.EMAIL_PASS,
       },
     });
-
+   // instead of token number - 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
     const mailOptions = {
