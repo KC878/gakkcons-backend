@@ -1,3 +1,5 @@
+//const { requestAppointment } = require("../../controllers/appointment");
+
 const getAppointments = `
   SELECT 
     a.appointment_id, 
@@ -26,6 +28,13 @@ const getAppointmentById = `
   WHERE a.appointment_id = $1;
 `;
 
+// Request Appointments
+
+const requestAppointment_Student = `INSERT INTO Appointments 
+  (student_id, faculty_id, mode_id, status_id, reason, scheduled_date, meet_link)
+  VALUES ($1, $2, $3, $4, $5, $6, $7)
+  RETURNING *;`;
+
 const updateReason = `
   UPDATE Appointments
   SET reason = $1
@@ -36,5 +45,6 @@ const updateReason = `
 module.exports = {
   getAppointments,
   getAppointmentById,
+  requestAppointment_Student,
   updateReason,
 };

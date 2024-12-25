@@ -32,6 +32,40 @@ const getAppointmentById = async (req, res) => {
   }
 };
 
+// Request an appointment
+const requestAppointment = async (req, res) => {
+  const { student_id, faculty_id, mode_id } = req.body;
+
+  // Validate mandatory fields
+  if (!student_id || !faculty_id || !mode_id) {
+    return res.status(400).json({ error: "Student ID, Faculty ID, and Mode are required." });
+  }
+
+  try {
+    const status_id = 1;  // Assuming '1' represents "pending" status.
+    const reason = null;  // Reason is null
+    const scheduled_date = null;  // Scheduled date is null
+    const meet_link = null;  // Meet link is null
+
+    // Insert new appointment request into the database
+    const result = await pool.query(
+      appointmentQueries.requestAppointment_Student, 
+      [student_id, faculty_id, mode_id, status_id, reason, scheduled_date, meet_link]
+    );
+
+    // Return the created appointment
+    res.status(201).json({
+      message: "Appointment request submitted successfully.",
+      appointment: result.rows[0],
+    });
+  } catch (err) {
+    console.error("Error requesting appointment:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+// after request Appointment
 const updateReason = async (req, res) => {
   const { appointment_id } = req.params;
   const { reason } = req.body;
@@ -66,5 +100,6 @@ const updateReason = async (req, res) => {
 module.exports = {
   getAppointments,
   getAppointmentById,
+  requestAppointment,
   updateReason,
 };
