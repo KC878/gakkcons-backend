@@ -41,6 +41,9 @@ const loginUser = async (req, res) => {
 const signupUser = async (req, res) => {
   try {
     const { password, first_name, last_name, email } = req.body;
+
+    await pool.query("BEGIN");
+
     const emailCheckResult = await pool.query(userQueries.checkEmailExists, [
       email,
     ]);
@@ -70,11 +73,14 @@ const signupUser = async (req, res) => {
       expiresIn: "1h",
     });
 
+    await pool.query("COMMIT");
+
     res.status(201).json({
       message: `User created successfully and User ${email} is assigned to role 3 = Student`,
       token,
     });
   } catch (err) {
+    await pool.query("ROLLBACK");
     console.error(err.message);
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -145,7 +151,7 @@ const resetPassword = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { rows } = await db.query(userQueries.getUserById, [userId]);
+    const { rows } = await pool.query(userQueries.getUserById, [userId]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -171,7 +177,7 @@ const updateProfile = async (req, res) => {
         .status(400)
         .json({ error: "First name, email, and password are required" });
     }
-    const result = await db.query(userQueries.updateUser, [
+    const result = await pool.query(userQueries.updateUser, [
       first_name,
       last_name,
       email,
