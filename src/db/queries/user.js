@@ -18,7 +18,7 @@ const assignUserRole = `
   `;
 
 const updateUserPassword = `
-    UPDATE users SET password = $1 WHERE user_id = $2;
+    UPDATE users SET password = $1 WHERE email = $2;
 `;
 const getUserById = `
   SELECT 

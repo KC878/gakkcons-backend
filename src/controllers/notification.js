@@ -22,6 +22,7 @@ const updateAppointmentStatus = async (req, res) => {
   const { status_id } = req.body;
 
   try {
+    await pool.query("BEGIN");
     const { rows } = await pool.query(
       notificationQueries.updateAppointmentStatus,
       [status_id, appointment_id]
@@ -38,12 +39,13 @@ const updateAppointmentStatus = async (req, res) => {
     if (io) {
       io.emit("appointments", notifications.rows); // Emit the updated appointments in real-time
     }
-
+    await pool.query("COMMIT");
     res.status(200).json({
       message: "Appointment status updated successfully.",
       appointment: rows[0],
     });
   } catch (err) {
+    await pool.query("ROLLBACK");
     console.error("Error updating appointment status:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
