@@ -5,6 +5,8 @@ const nodemailer = require("nodemailer");
 const userQueries = require("./../db/queries/user");
 const pool = require("./../db/pool");
 
+const crypto = require("crypto");
+
 
 const loginUser = async (req, res) => {
   try {
@@ -81,6 +83,7 @@ const signupUser = async (req, res) => {
   }
 };
 
+/*
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -142,6 +145,119 @@ const resetPassword = async (req, res) => {
     res.status(400).json({ error: "Invalid or expired token" });
   }
 };
+*/
+
+// forgotPassword -- section 
+
+// Generate a random 6-character alphanumeric code
+const generateVerificationCode = () => {
+  return crypto.randomBytes(3).toString("hex").toUpperCase(); // Generates 6-character code
+};
+
+// Configure email transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    // Fetch user_id using the provided email
+    const userQueryResult = await pool.query("SELECT user_id FROM users WHERE email = $1", [email]);
+    const userId = userQueryResult.rows[0]?.user_id;
+
+    if (!userId) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Generate verification code
+    const verificationCode = generateVerificationCode();
+
+    // Create expiration time for the code - set to 15 at default
+    const expirationTime = new Date(Date.now() + 15 * 60 * 1000);
+
+    
+    // Configure email details
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset Verification Code",
+      text: `You requested a password reset. Use the verification code below to reset your password:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 15 minutes.`,
+    };
+
+    // Save verification code with `is_verified` set to `null`
+    await pool.query(userQueries.saveVerificationCode, [userId, verificationCode, expirationTime]);
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Verification code sent to your email." });
+  } catch (error) {
+    console.error("Error in forgotPassword:", error.message);
+    res.status(500).json({ message: "Failed to send verification code." });
+  }
+};
+
+// reset Password
+const resetPassword = async (req, res) => {
+  try {
+    const { user_id, verificationCode, newPassword } = req.body;
+
+    // Retrieve verification code, expiration time, and is_verified from the database for the specific user_id
+    const result = await pool.query(userQueries.getResultVerificationCode, [user_id, verificationCode]);
+
+    // Check if the result is empty or no matching entry is found
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Invalid user_id or verification code not found." });
+    }
+
+    const storedCode = result.rows[0]?.code;
+    const expirationTime = result.rows[0]?.expiration_time;
+    const isVerified = result.rows[0]?.is_verified;
+
+    // Validate the code
+    if (!storedCode || storedCode !== verificationCode) {
+      return res.status(400).json({ message: "Invalid verification code." });
+    }
+
+    // Check if the code has expired
+    if (new Date() > new Date(expirationTime)) {
+      // Set the verification to false if expired
+      await pool.query(userQueries.setFalseVerificationCode, [user_id, verificationCode]);
+      return res.status(400).json({ message: "Verification code has expired." });
+    }
+
+    // Check if the code is already verified
+    if (isVerified) {
+      return res.status(400).json({ message: "Verification code has already been used." });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the user's password
+    await pool.query(userQueries.updateUserPassword, [hashedPassword, user_id]);
+    console.log(newPassword);
+
+    // Mark the verification code as verified
+    await pool.query( userQueries.setTrueVerificationCode, [user_id, verificationCode]);
+
+    res.status(200).json({ message: "Password reset successful." });
+  } catch (error) {
+    console.error("Error in resetPassword:", error.message);
+    res.status(500).json({ message: "Failed to reset password." });
+  }
+};
+
 
 const getProfile = async (req, res) => {
   try {

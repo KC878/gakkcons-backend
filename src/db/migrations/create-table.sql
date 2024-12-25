@@ -95,3 +95,11 @@ CREATE TABLE Appointments (
     FOREIGN KEY (mode_id) REFERENCES Mode(mode_id) ON DELETE CASCADE,
     FOREIGN KEY (status_id) REFERENCES Status(status_id) ON DELETE CASCADE
 );
+
+-- Create userVerification Table with Foreign Key Reference
+CREATE TABLE userVerification (
+    user_id INT,
+    code TEXT,
+    is_verified BOOLEAN,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
