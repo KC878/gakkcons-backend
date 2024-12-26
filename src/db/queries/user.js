@@ -37,7 +37,7 @@ const setTrueVerificationCode = `UPDATE userVerification SET is_verified = TRUE
 /// ***** Forgot Pass word and Reset Password *******
 
 const updateUserPassword = `
-    UPDATE users SET password = $1 WHERE user_id = $2;
+    UPDATE users SET password = $1 WHERE email = $2;
 `;
 
 //
