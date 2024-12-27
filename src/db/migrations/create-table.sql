@@ -96,11 +96,12 @@ CREATE TABLE Appointments (
     FOREIGN KEY (status_id) REFERENCES Status(status_id) ON DELETE CASCADE
 );
 
-CREATE TABLE userVerification (
-    user_verification_id SERIAL PRIMARY KEY,  -- Serial is correct for auto-incrementing
-    user_id INT NOT NULL,                     -- It's a good practice to specify NOT NULL for foreign keys
-    code TEXT NOT NULL,                       -- Assuming the verification code should be non-null
-    expiration_time TIMESTAMP NOT NULL,       -- Assuming expiration time is required
-    is_verified BOOLEAN,
+CREATE TABLE User_Verifications (
+    user_verification_id SERIAL PRIMARY KEY,  
+    user_id INT NOT NULL,                     
+    code TEXT NOT NULL,                       
+    expiration_time TIMESTAMP NOT NULL,
+    code_type TEXT NOT NULL,     
+    is_used BOOLEAN,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );

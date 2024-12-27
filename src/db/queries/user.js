@@ -18,6 +18,10 @@ const createUser = `
   RETURNING user_id;
 `;
 
+const getUserVerification = `
+  SELECT * FROM user_verifications WHERE user_id = $1
+`;
+
 const checkEmailExists = `
   SELECT * FROM Users WHERE email = $1;
 `;
@@ -27,29 +31,22 @@ const assignUserRole = `
     VALUES ($1, $2);
   `;
 
-/// ***** Forgot Pass word and Reset Password *******
 const saveVerificationCode = `
-    INSERT INTO userVerification (user_id, code, expiration_time, is_verified)
-    VALUES ($1, $2, $3, null)
+    INSERT INTO user_verifications (user_id, code, expiration_time, is_used, code_type)
+    VALUES ($1, $2, $3, FALSE, $4)
   `;
 
-const getResultVerificationCode = `SELECT code, expiration_time, is_verified
-       FROM userVerification
-       WHERE user_id = $1 AND code = $2`;
+const checkVerificationCode = `SELECT code, expiration_time, is_used
+       FROM user_verifications
+       WHERE user_id = $1 AND code = $2 AND code_type = $3`;
 
-const setFalseVerificationCode = `UPDATE userVerification SET is_verified = FALSE 
+const setTrueVerificationCode = `UPDATE user_verifications SET is_used = TRUE 
          WHERE user_id = $1 AND code = $2`;
-
-const setTrueVerificationCode = `UPDATE userVerification SET is_verified = TRUE 
-         WHERE user_id = $1 AND code = $2`;
-
-/// ***** Forgot Pass word and Reset Password *******
 
 const updateUserPassword = `
-    UPDATE users SET password = $1 WHERE user_id = $2;
+    UPDATE Users SET password = $1 WHERE user_id = $2;
 `;
 
-//
 const getUserById = `
   SELECT 
     email,
@@ -70,11 +67,11 @@ const updateUser = `
 module.exports = {
   getUserByEmail,
   createUser,
+  getUserVerification,
   checkEmailExists,
   assignUserRole,
   saveVerificationCode,
-  getResultVerificationCode,
-  setFalseVerificationCode,
+  checkVerificationCode,
   setTrueVerificationCode,
   updateUserPassword,
   getUserById,
