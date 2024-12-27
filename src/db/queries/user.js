@@ -1,5 +1,15 @@
 const getUserByEmail = `
-  SELECT * FROM Users WHERE email = $1;
+  SELECT 
+    Users.*,
+    User_Roles.role_id
+  FROM 
+    Users
+  LEFT JOIN 
+    User_Roles 
+  ON 
+    Users.user_id = User_Roles.user_id
+  WHERE 
+    Users.email = $1;
 `;
 
 const createUser = `
