@@ -52,7 +52,7 @@ const loginUser = async (req, res) => {
 
 const signupUser = async (req, res) => {
   try {
-    const { password, first_name, last_name, email } = req.body;
+    const { password, first_name, last_name, email, user_type } = req.body;
 
     await pool.query("BEGIN");
 
@@ -95,7 +95,10 @@ const signupUser = async (req, res) => {
 
     await sendEmail(email, subject, text);
 
-    await pool.query(userQueries.assignUserRole, [newUserId, 3]);
+    await pool.query(userQueries.assignUserRole, [
+      newUserId,
+      user_type === "faculty" ? 2 : user_type === "admin" ? 1 : 3,
+    ]);
 
     await pool.query("COMMIT");
 
