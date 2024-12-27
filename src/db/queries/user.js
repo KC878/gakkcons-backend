@@ -1,5 +1,15 @@
 const getUserByEmail = `
-  SELECT * FROM Users WHERE email = $1;
+  SELECT 
+    Users.*,
+    User_Roles.role_id
+  FROM 
+    Users
+  LEFT JOIN 
+    User_Roles 
+  ON 
+    Users.user_id = User_Roles.user_id
+  WHERE 
+    Users.email = $1;
 `;
 
 const createUser = `
@@ -30,10 +40,9 @@ const getResultVerificationCode = `SELECT code, expiration_time, is_verified
 const setFalseVerificationCode = `UPDATE userVerification SET is_verified = FALSE 
          WHERE user_id = $1 AND code = $2`;
 
-
 const setTrueVerificationCode = `UPDATE userVerification SET is_verified = TRUE 
          WHERE user_id = $1 AND code = $2`;
-         
+
 /// ***** Forgot Pass word and Reset Password *******
 
 const updateUserPassword = `

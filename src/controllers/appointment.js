@@ -1,18 +1,26 @@
 const pool = require("../db/pool");
 const appointmentQueries = require("../db/queries/appointment");
 
-// Get all appointments with their details (date, time, type, status)
 const getAppointments = async (req, res) => {
   try {
-    const result = await pool.query(appointmentQueries.getAppointments);
-    res.json(result.rows); // Return the list of appointments
+    let result;
+    if (req.user.user_role === 2) {
+      result = await pool.query(appointmentQueries.getAppointmentsByFaculty, [
+        req.user.user_id,
+      ]);
+    } else if (req.user.user_role === 3) {
+      result = await pool.query(appointmentQueries.getAppointmentsByStudent, [
+        req.user.user_id,
+      ]);
+    }
+
+    res.json(result.rows);
   } catch (err) {
     console.error("Error fetching appointments:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Get a single appointment by ID with its details
 const getAppointmentById = async (req, res) => {
   const { appointment_id } = req.params;
 
@@ -25,35 +33,30 @@ const getAppointmentById = async (req, res) => {
       return res.status(404).json({ error: "Appointment not found" });
     }
 
-    res.json(result.rows[0]); // Return the appointment details
+    res.json(result.rows[0]);
   } catch (err) {
     console.error("Error fetching appointment:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// Request an appointment
 const requestAppointment = async (req, res) => {
-  const { student_id, faculty_id, mode_id } = req.body;
-
-  // Validate mandatory fields
-  if (!student_id || !faculty_id || !mode_id) {
-    return res.status(400).json({ error: "Student ID, Faculty ID, and Mode are required." });
-  }
-
   try {
-    const status_id = 1;  // Assuming '1' represents "pending" status.
-    const reason = null;  // Reason is null
-    const scheduled_date = null;  // Scheduled date is null
-    const meet_link = null;  // Meet link is null
+    const { student_id, faculty_id, reason, mode_id } = req.body;
 
-    // Insert new appointment request into the database
+    if (!student_id || !faculty_id || !mode_id) {
+      return res
+        .status(400)
+        .json({ error: "Student ID, Faculty ID, and Mode are required." });
+    }
+
+    const status_id = 1;
+
     const result = await pool.query(
-      appointmentQueries.requestAppointment_Student, 
-      [student_id, faculty_id, mode_id, status_id, reason, scheduled_date, meet_link]
+      appointmentQueries.requestAppointment_Student,
+      [student_id, faculty_id, mode_id, status_id, reason]
     );
 
-    // Return the created appointment
     res.status(201).json({
       message: "Appointment request submitted successfully.",
       appointment: result.rows[0],
@@ -64,42 +67,8 @@ const requestAppointment = async (req, res) => {
   }
 };
 
-
-// after request Appointment
-const updateReason = async (req, res) => {
-  const { appointment_id } = req.params;
-  const { reason } = req.body;
-
-  console.log("Request Params:", req.params);
-  console.log("Request Body:", req.body);
-
-  if (!reason) {
-    return res.status(400).json({ error: "Reason is required." });
-  }
-
-  try {
-    const result = await db.query(appointmentQueries.updateReason, [
-      reason,
-      appointment_id,
-    ]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Appointment not found." });
-    }
-
-    res.json({
-      message: "Reason updated successfully.",
-      appointment: result.rows[0],
-    });
-  } catch (err) {
-    console.error("Error updating reason:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-};
-
 module.exports = {
   getAppointments,
   getAppointmentById,
   requestAppointment,
-  updateReason,
 };

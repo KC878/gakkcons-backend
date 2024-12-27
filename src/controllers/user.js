@@ -7,7 +7,6 @@ const pool = require("./../db/pool");
 
 const crypto = require("crypto");
 
-
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -26,7 +25,7 @@ const loginUser = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { user_id: user.user_id, email: user.email },
+      { user_id: user.user_id, email: user.email, user_role: user.role_id },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -147,7 +146,7 @@ const resetPassword = async (req, res) => {
 };
 */
 
-// forgotPassword -- section 
+// forgotPassword -- section
 
 // Generate a random 6-character alphanumeric code
 const generateVerificationCode = () => {
@@ -172,7 +171,10 @@ const forgotPassword = async (req, res) => {
     }
 
     // Fetch user_id using the provided email
-    const userQueryResult = await pool.query("SELECT user_id FROM users WHERE email = $1", [email]);
+    const userQueryResult = await pool.query(
+      "SELECT user_id FROM users WHERE email = $1",
+      [email]
+    );
     const userId = userQueryResult.rows[0]?.user_id;
 
     if (!userId) {
@@ -185,7 +187,6 @@ const forgotPassword = async (req, res) => {
     // Create expiration time for the code - set to 15 at default
     const expirationTime = new Date(Date.now() + 15 * 60 * 1000);
 
-    
     // Configure email details
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -195,7 +196,11 @@ const forgotPassword = async (req, res) => {
     };
 
     // Save verification code with `is_verified` set to `null`
-    await pool.query(userQueries.saveVerificationCode, [userId, verificationCode, expirationTime]);
+    await pool.query(userQueries.saveVerificationCode, [
+      userId,
+      verificationCode,
+      expirationTime,
+    ]);
 
     // Send email
     await transporter.sendMail(mailOptions);
@@ -213,11 +218,16 @@ const resetPassword = async (req, res) => {
     const { user_id, verificationCode, newPassword } = req.body;
 
     // Retrieve verification code, expiration time, and is_verified from the database for the specific user_id
-    const result = await pool.query(userQueries.getResultVerificationCode, [user_id, verificationCode]);
+    const result = await pool.query(userQueries.getResultVerificationCode, [
+      user_id,
+      verificationCode,
+    ]);
 
     // Check if the result is empty or no matching entry is found
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Invalid user_id or verification code not found." });
+      return res
+        .status(404)
+        .json({ message: "Invalid user_id or verification code not found." });
     }
 
     const storedCode = result.rows[0]?.code;
@@ -232,13 +242,20 @@ const resetPassword = async (req, res) => {
     // Check if the code has expired
     if (new Date() > new Date(expirationTime)) {
       // Set the verification to false if expired
-      await pool.query(userQueries.setFalseVerificationCode, [user_id, verificationCode]);
-      return res.status(400).json({ message: "Verification code has expired." });
+      await pool.query(userQueries.setFalseVerificationCode, [
+        user_id,
+        verificationCode,
+      ]);
+      return res
+        .status(400)
+        .json({ message: "Verification code has expired." });
     }
 
     // Check if the code is already verified
     if (isVerified) {
-      return res.status(400).json({ message: "Verification code has already been used." });
+      return res
+        .status(400)
+        .json({ message: "Verification code has already been used." });
     }
 
     // Hash the new password
@@ -249,7 +266,10 @@ const resetPassword = async (req, res) => {
     console.log(newPassword);
 
     // Mark the verification code as verified
-    await pool.query( userQueries.setTrueVerificationCode, [user_id, verificationCode]);
+    await pool.query(userQueries.setTrueVerificationCode, [
+      user_id,
+      verificationCode,
+    ]);
 
     res.status(200).json({ message: "Password reset successful." });
   } catch (error) {
@@ -257,7 +277,6 @@ const resetPassword = async (req, res) => {
     res.status(500).json({ message: "Failed to reset password." });
   }
 };
-
 
 const getProfile = async (req, res) => {
   try {
