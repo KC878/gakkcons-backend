@@ -17,6 +17,17 @@ const loginUser = async (req, res) => {
 
     const user = userResult.rows[0];
 
+    const userVerificationQuery = await pool.query(
+      userQueries.getUserVerification,
+      [user.user_id]
+    );
+
+    const userVerification = userVerificationQuery.rows[0];
+
+    if (!userVerification.is_used) {
+      return res.status(400).json({ error: "User is not verified yet." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -195,6 +206,7 @@ const resetPassword = async (req, res) => {
     const result = await pool.query(userQueries.checkVerificationCode, [
       user_id,
       verificationCode,
+      "reset_password",
     ]);
 
     if (result.rowCount === 0) {
@@ -206,13 +218,8 @@ const resetPassword = async (req, res) => {
     const storedCode = result.rows[0]?.code;
     const expirationTime = result.rows[0]?.expiration_time;
     const isUsed = result.rows[0]?.is_used;
-    const codeType = result.rows[0]?.code_type;
 
-    if (
-      !storedCode ||
-      storedCode !== verificationCode ||
-      codeType !== "reset_password"
-    ) {
+    if (storedCode !== verificationCode) {
       return res.status(400).json({ message: "Invalid verification code." });
     }
 
