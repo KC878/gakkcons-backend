@@ -19,7 +19,7 @@ const createUser = `
 `;
 
 const getUserVerification = `
-  SELECT * FROM user_verifications WHERE user_id = $1
+  SELECT * FROM user_verifications WHERE user_id = $1 AND code_type = $2
 `;
 
 const checkEmailExists = `
@@ -32,16 +32,16 @@ const assignUserRole = `
   `;
 
 const saveVerificationCode = `
-    INSERT INTO user_verifications (user_id, code, expiration_time, is_used, code_type)
-    VALUES ($1, $2, $3, FALSE, $4)
+    INSERT INTO user_verifications (user_id, code, expiration_time, code_type)
+    VALUES ($1, $2, $3, $4)
   `;
 
-const checkVerificationCode = `SELECT code, expiration_time, is_used
+const checkVerificationCode = `SELECT code, expiration_time
        FROM user_verifications
        WHERE user_id = $1 AND code = $2 AND code_type = $3`;
 
-const setTrueVerificationCode = `UPDATE user_verifications SET is_used = TRUE 
-         WHERE user_id = $1 AND code = $2`;
+const deleteVerificationCode = `DELETE FROM user_verifications 
+       WHERE user_id = $1`;
 
 const updateUserPassword = `
     UPDATE Users SET password = $1 WHERE user_id = $2;
@@ -72,7 +72,7 @@ module.exports = {
   assignUserRole,
   saveVerificationCode,
   checkVerificationCode,
-  setTrueVerificationCode,
+  deleteVerificationCode,
   updateUserPassword,
   getUserById,
   updateUser,
