@@ -1,10 +1,9 @@
--- Create Roles Table
 CREATE TABLE Roles (
     role_id SERIAL PRIMARY KEY,
     role_name VARCHAR(50) NOT NULL
 );
 
--- Create Users Table
+
 CREATE TABLE Users (
     user_id SERIAL PRIMARY KEY,
     password VARCHAR(255) NOT NULL,
@@ -13,7 +12,7 @@ CREATE TABLE Users (
     email VARCHAR(100) UNIQUE NOT NULL
 );
 
--- Create User Roles Table
+
 CREATE TABLE User_Roles (
     user_id INT NOT NULL,
     role_id INT NOT NULL,
@@ -22,13 +21,11 @@ CREATE TABLE User_Roles (
     FOREIGN KEY (role_id) REFERENCES Roles(role_id) ON DELETE CASCADE
 );
 
--- Create Programs Table
 CREATE TABLE Programs (
     program_id SERIAL PRIMARY KEY,
     program_name VARCHAR(100) NOT NULL
 );
 
--- Create Subjects Table
 CREATE TABLE Subjects (
     subject_id SERIAL PRIMARY KEY,
     program_id INT NOT NULL,
@@ -36,7 +33,6 @@ CREATE TABLE Subjects (
     FOREIGN KEY (program_id) REFERENCES Programs(program_id) ON DELETE CASCADE
 );
 
--- Create College Department Table
 CREATE TABLE College_Department (
     department_id SERIAL PRIMARY KEY,
     department_name VARCHAR(100) NOT NULL,
@@ -46,7 +42,6 @@ CREATE TABLE College_Department (
     FOREIGN KEY (program_id) REFERENCES Programs(program_id) ON DELETE CASCADE
 );
 
--- Create Department Programs Table
 CREATE TABLE Department_Programs (
     department_id INT NOT NULL,
     program_id INT NOT NULL,
@@ -55,7 +50,6 @@ CREATE TABLE Department_Programs (
     FOREIGN KEY (program_id) REFERENCES Programs(program_id) ON DELETE CASCADE
 );
 
--- Create User Subjects Table
 CREATE TABLE User_Subjects (
     user_id INT NOT NULL,
     subject_id INT NOT NULL,
@@ -67,19 +61,16 @@ CREATE TABLE User_Subjects (
     FOREIGN KEY (subject_id) REFERENCES Subjects(subject_id) ON DELETE CASCADE
 );
 
--- Create Mode Table
 CREATE TABLE Mode (
     mode_id SERIAL PRIMARY KEY,
     mode VARCHAR(50) NOT NULL
 );
 
--- Create Status Table
 CREATE TABLE Status (
     status_id SERIAL PRIMARY KEY,
     status VARCHAR(50) NOT NULL
 );
 
--- Create Appointments Table
 CREATE TABLE Appointments (
     appointment_id SERIAL PRIMARY KEY,
     student_id INT NOT NULL,
@@ -102,6 +93,5 @@ CREATE TABLE User_Verifications (
     code TEXT NOT NULL,                       
     expiration_time TIMESTAMP NOT NULL,
     code_type TEXT NOT NULL,     
-    is_used BOOLEAN,
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );

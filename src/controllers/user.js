@@ -9,35 +9,39 @@ const sendEmail = require("../utils/sendEmail");
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const userResult = await pool.query(userQueries.getUserByEmail, [email]);
 
-    if (userResult.rows.length === 0) {
-      return res.status(400).json({ error: "User not found" });
+    if (!email || !password) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
+
+    const userResult = await pool.query(userQueries.getUserByEmail, [email]);
 
     const user = userResult.rows[0];
 
-    const userVerificationQuery = await pool.query(
-      userQueries.getUserVerification,
-      [user.user_id]
-    );
-
-    const userVerification = userVerificationQuery.rows[0];
-
-    if (!userVerification.is_used) {
-      return res.status(400).json({ error: "User is not verified yet." });
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const userVerificationQuery = await pool.query(
+      userQueries.getUserVerification,
+      [user.user_id, "signup_verify_user"]
+    );
+
+    const userVerification = userVerificationQuery.rows[0];
+
+    if (userVerification) {
+      return res.status(400).json({ message: "User is not verified yet." });
     }
 
     const token = jwt.sign(
       { user_id: user.user_id, email: user.email, user_role: user.role_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      process.env.JWT_SECRET
     );
 
     res.status(200).json({
@@ -46,13 +50,13 @@ const loginUser = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 const signupUser = async (req, res) => {
   try {
-    const { password, first_name, last_name, email, user_type } = req.body;
+    const { password, firstName, lastName, email, userType } = req.body;
 
     await pool.query("BEGIN");
 
@@ -61,15 +65,17 @@ const signupUser = async (req, res) => {
     ]);
 
     if (emailCheckResult.rows.length > 0) {
-      return res.status(400).json({ error: "Email already exists" });
+      return res
+        .status(400)
+        .json({ status: "error", message: "Email already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUserResult = await pool.query(userQueries.createUser, [
       hashedPassword,
-      first_name,
-      last_name,
+      firstName,
+      lastName,
       email,
     ]);
 
@@ -97,7 +103,7 @@ const signupUser = async (req, res) => {
 
     await pool.query(userQueries.assignUserRole, [
       newUserId,
-      user_type === "faculty" ? 2 : user_type === "admin" ? 1 : 3,
+      userType === "faculty" ? 2 : userType === "admin" ? 1 : 3,
     ]);
 
     await pool.query("COMMIT");
@@ -109,23 +115,30 @@ const signupUser = async (req, res) => {
   } catch (err) {
     await pool.query("ROLLBACK");
     console.error(err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
 
 const verifyUser = async (req, res) => {
   try {
-    const { user_id, verificationCode } = req.body;
+    const { email, verificationCode, codeType } = req.body;
 
     await pool.query("BEGIN");
 
+    const userResult = await pool.query(userQueries.getUserByEmail, [email]);
+
+    const user = userResult.rows[0];
+
     const verificationResult = await pool.query(
       userQueries.checkVerificationCode,
-      [user_id, verificationCode, "signup_verify_user"]
+      [user.user_id, verificationCode, codeType]
     );
 
+    if (verificationResult.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid verification code" });
+    }
+
     const expirationTime = verificationResult.rows[0]?.expiration_time;
-    const isUsed = verificationResult.rows[0]?.is_used;
 
     if (new Date() > new Date(expirationTime)) {
       return res
@@ -133,22 +146,7 @@ const verifyUser = async (req, res) => {
         .json({ message: "Verification code has expired." });
     }
 
-    if (isUsed) {
-      return res
-        .status(400)
-        .json({ message: "Verification code has already been used." });
-    }
-
-    if (verificationResult.rows.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "Invalid or expired verification code" });
-    }
-
-    await pool.query(userQueries.setTrueVerificationCode, [
-      user_id,
-      verificationCode,
-    ]);
+    await pool.query(userQueries.deleteVerificationCode, [user.user_id]);
 
     await pool.query("COMMIT");
 
@@ -156,7 +154,7 @@ const verifyUser = async (req, res) => {
   } catch (err) {
     await pool.query("ROLLBACK");
     console.error(err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -167,7 +165,7 @@ const forgotPassword = async (req, res) => {
     const userResult = await pool.query(userQueries.getUserByEmail, [email]);
 
     if (userResult.rows.length === 0) {
-      return res.status(400).json({ error: "User not found" });
+      return res.status(400).json({ message: "User not found." });
     }
 
     const verificationCode = generateVerificationCode();
@@ -192,66 +190,40 @@ const forgotPassword = async (req, res) => {
 
     res.status(200).json({
       message: "Verification code sent to your email.",
-      userId: user.user_id,
     });
   } catch (err) {
     await pool.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 const resetPassword = async (req, res) => {
   try {
-    const { user_id, verificationCode, newPassword } = req.body;
+    const { email, newPassword } = req.body;
     await pool.query("BEGIN");
 
-    const result = await pool.query(userQueries.checkVerificationCode, [
-      user_id,
-      verificationCode,
-      "reset_password",
-    ]);
+    const userResult = await pool.query(userQueries.getUserByEmail, [email]);
 
-    if (result.rowCount === 0) {
-      return res
-        .status(404)
-        .json({ message: "Invalid user_id or verification code not found." });
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ message: "User not found." });
     }
 
-    const storedCode = result.rows[0]?.code;
-    const expirationTime = result.rows[0]?.expiration_time;
-    const isUsed = result.rows[0]?.is_used;
-
-    if (storedCode !== verificationCode) {
-      return res.status(400).json({ message: "Invalid verification code." });
-    }
-
-    if (new Date() > new Date(expirationTime)) {
-      return res
-        .status(400)
-        .json({ message: "Verification code has expired." });
-    }
-
-    if (isUsed) {
-      return res
-        .status(400)
-        .json({ message: "Verification code has already been used." });
-    }
+    const user = userResult.rows[0];
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await pool.query(userQueries.updateUserPassword, [hashedPassword, user_id]);
-
-    await pool.query(userQueries.setTrueVerificationCode, [
-      user_id,
-      verificationCode,
+    await pool.query(userQueries.updateUserPassword, [
+      hashedPassword,
+      user.user_id,
     ]);
+
     await pool.query("COMMIT");
     res.status(200).json({ message: "Password reset successful." });
   } catch (error) {
     await pool.query("ROLLBACK");
-    console.error("Error in resetPassword:", error.message);
-    res.status(500).json({ message: "Failed to reset password." });
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
