@@ -1,42 +1,52 @@
-require("dotenv").config(); // Load environment variables
-const pool = require("./../pool");
-// Function to get the list of teachers with their department and role
-const getTeachers = async () => {
-  const client = await pool.connect(); // Get a client from the pool
-  try {
-    const result = await client.query(`
-      SELECT 
-        u.first_name || ' ' || u.last_name AS name, 
-        ur.role_id, 
-        ur.user_id,
-        ud.department_name AS college_department
-      FROM 
-        users u
-      JOIN 
-        user_roles ur ON ur.user_id = u.user_id
-      JOIN 
-        college_department ud ON ud.department_head_id = u.user_id
-      WHERE 
-        ur.role_id = 2  -- Assuming role_id 2 corresponds to 'faculty'
-      ORDER BY 
-        u.first_name;
-    `);
-
-    // Format the results for better clarity
-    const teachers = result.rows.map((row) => ({
-      name: row.name,
-      role: "faculty", // Assuming all selected users are faculty
-      college_department: row.college_department,
-    }));
-
-    return teachers; // Return the list of teachers
-  } catch (error) {
-    console.error("Database query error:", error);
-    throw new Error("Error while querying the database"); // Handle query errors
-  } finally {
-    client.release(); // Ensure that the client is released back to the pool
-  }
-};
+const getTeachers = `
+  SELECT 
+    u.first_name || ' ' || u.last_name AS name, 
+    ur.role_id, 
+    ur.user_id,
+    ud.department_name AS college_department,
+    COALESCE(
+      json_agg(
+        CASE 
+          WHEN a.appointment_id IS NOT NULL THEN
+            json_build_object(
+              'appointment_id', a.appointment_id,
+              'mode', m.mode,
+              'status', st.status,
+              'scheduled_date', a.scheduled_date
+            )
+        END
+      ) FILTER (WHERE a.appointment_id IS NOT NULL),
+      '[]'
+    ) AS appointments,
+    COALESCE(
+      json_agg(
+        DISTINCT s.subject_name
+      ) FILTER (WHERE s.subject_name IS NOT NULL),
+      '[]'
+    ) AS subjects
+  FROM 
+    users u
+  JOIN 
+    user_roles ur ON ur.user_id = u.user_id
+  LEFT JOIN 
+    college_department ud ON ud.department_head_id = u.user_id
+  LEFT JOIN 
+    appointments a ON a.faculty_id = u.user_id
+  LEFT JOIN 
+    mode m ON a.mode_id = m.mode_id
+  LEFT JOIN 
+    status st ON a.status_id = st.status_id
+  LEFT JOIN 
+    user_subjects us ON us.user_id = u.user_id
+  LEFT JOIN 
+    subjects s ON us.subject_id = s.subject_id
+  WHERE 
+    ur.role_id = 2
+  GROUP BY 
+    u.user_id, ur.role_id, ur.user_id, ud.department_name
+  ORDER BY 
+    u.first_name;
+`;
 
 const searchTeacher = async (query) => {
   const client = await pool.connect(); // Connect to the database

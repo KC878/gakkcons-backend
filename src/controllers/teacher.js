@@ -1,11 +1,14 @@
 const teacherQueries = require("./../db/queries/teacher");
+const pool = require("./../db/pool");
 
 const getTeachers = async (req, res) => {
   try {
-    const teachers = await teacherQueries.getTeachers();
-    res.json(teachers); // Send the response as JSON
+    const { rows: teachers } = await pool.query(teacherQueries.getTeachers);
+
+    res.json(teachers);
   } catch (error) {
-    res.status(500).json({ error: error.message }); // Handle errors
+    console.error(error.message);
+    res.status(500).json({ message: error.message });
   }
 };
 

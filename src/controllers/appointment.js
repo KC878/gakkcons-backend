@@ -42,28 +42,35 @@ const getAppointmentById = async (req, res) => {
 
 const requestAppointment = async (req, res) => {
   try {
-    const { student_id, faculty_id, reason, mode_id } = req.body;
+    const studentId = req.user.user_id;
+    const { facultyId, reason, mode } = req.body;
 
-    if (!student_id || !faculty_id || !mode_id) {
-      return res
-        .status(400)
-        .json({ error: "Student ID, Faculty ID, and Mode are required." });
+    if (!studentId || !facultyId || !mode || !reason) {
+      return res.status(400).json({ message: "Invalid request." });
+    }
+
+    let modeId;
+
+    if (mode === "online") {
+      modeId = 1;
+    } else {
+      modeId = 2;
     }
 
     const status_id = 1;
 
     const result = await pool.query(
       appointmentQueries.requestAppointment_Student,
-      [student_id, faculty_id, mode_id, status_id, reason]
+      [studentId, facultyId, modeId, status_id, reason]
     );
 
     res.status(201).json({
       message: "Appointment request submitted successfully.",
       appointment: result.rows[0],
     });
-  } catch (err) {
-    console.error("Error requesting appointment:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
