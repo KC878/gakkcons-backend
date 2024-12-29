@@ -250,30 +250,67 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { first_name, last_name, email, password } = req.body;
-    if (!first_name || !email || !password) {
+    const { firstName, lastName, email, currentPassword, newPassword } =
+      req.body;
+
+    await pool.query("BEGIN");
+
+    if (!firstName || !lastName) {
       return res
         .status(400)
-        .json({ error: "First name, email, and password are required" });
-    }
-    const result = await pool.query(userQueries.updateUser, [
-      first_name,
-      last_name,
-      email,
-      password,
-      userId,
-    ]);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "User not found" });
+        .json({ message: "First name and last name must not be empty." });
     }
 
+    if (newPassword && !currentPassword) {
+      return res.status(400).json({ message: "Invalid current password" });
+    }
+
+    const userResult = await pool.query(userQueries.getUserById, [userId]);
+
+    const user = userResult.rows[0];
+
+    if (currentPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid current password" });
+      }
+    }
+
+    const updates = {
+      first_name: firstName,
+      last_name: lastName,
+      // email: email,
+      password: newPassword ? await bcrypt.hash(newPassword, 10) : undefined,
+    };
+
+    const setClauses = [];
+    const values = [];
+    let index = 1;
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        setClauses.push(`${key} = $${index}`);
+        values.push(value);
+        index++;
+      }
+    }
+
+    const query = `
+      UPDATE Users
+      SET ${setClauses.join(", ")}
+      WHERE user_id = ${userId};
+    `;
+
+    await pool.query(query, values);
+
+    await pool.query("COMMIT");
     res.status(200).json({
       message: "Profile updated successfully",
     });
-  } catch (err) {
-    console.error("Error updating profile:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+  } catch (error) {
+    await pool.query("ROLLBACK");
+    console.error(error.message);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
