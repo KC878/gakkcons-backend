@@ -51,7 +51,8 @@ const getUserById = `
   SELECT 
     email,
     first_name,
-    last_name
+    last_name,
+    password
   FROM Users
   WHERE user_id = $1;  
 `;
