@@ -16,7 +16,6 @@ appointment.get("/", checkAuth, getAppointments);
 appointment.get("/:appointment_id", checkAuth, getAppointmentById);
 appointment.put("/:appointment_id", checkAuth, updateReason);
 appointment.post("/request", requestAppointment)
-appointment.put('/mode/:id', authenticateUser, updateAppointmentMode);
+appointment.put("/mode/:appointment_id", updateAppointmentMode);
 
 module.exports = appointment;
-``

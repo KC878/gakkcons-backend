@@ -43,28 +43,23 @@ const updateReason = `
 `;
 
 
-const verifyAppointmentOwnershipQuery = `
-    SELECT student_id, faculty_id
-    FROM Appointments
-    WHERE appointment_id = $1;
+
+// Query to verify if the appointment exists
+const verifyAppointmentExist = `
+  SELECT * FROM appointments WHERE appointment_id = $1
 `;
 
-const updateModeQuery = `
-    UPDATE Appointments
-    SET mode_id = $1
-    WHERE appointment_id = $2
-    RETURNING *;
+// Query to update the `mode_id` for the appointment
+const updateMode = `
+  UPDATE appointments SET mode_id = $1 WHERE appointment_id = $2 RETURNING *
 `;
-
-module.exports = { verifyAppointmentOwnershipQuery, updateModeQuery };
-
 
 module.exports = {
   getAppointments,
   getAppointmentById,
   requestAppointment_Student,
   updateReason,
-  verifyAppointmentOwnershipQuery,
-  updateModeQuery
+  verifyAppointmentExist,
+  updateMode
 
 };

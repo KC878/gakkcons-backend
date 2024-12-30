@@ -78,7 +78,7 @@ const updateReason = async (req, res) => {
   }
 
   try {
-    const result = await db.query(appointmentQueries.updateReason, [
+    const result = await pool.query(appointmentQueries.updateReason, [
       reason,
       appointment_id,
     ]);
@@ -98,42 +98,46 @@ const updateReason = async (req, res) => {
 };
 
 
-const updateAppointmentMode = async (req, res) => {
-  const { id } = req.params; // appointment_id
-  const { mode_id } = req.body; // New mode_id
-  const userId = req.user.id; // Authenticated user ID from middleware
 
+const updateAppointmentMode = async (req, res) => {
+  const { mode_id } = req.body; // Extract only `mode_id` from the request body
+  const { appointment_id } = req.params; // Extract `appointment_id` from the URL parameter
+
+  // Validate if `mode_id` and `appointment_id` are provided
   if (!mode_id) {
-      return res.status(400).json({ error: 'mode_id is required.' });
+    return res.status(400).json({ error: "Mode Id is required" });
   }
 
   try {
-      // Verify the user is either the student or faculty for the appointment
-      const appointmentResult = await pool.query(appointmentQueries.verifyAppointmentOwnershipQuery, [id]);
+    // Step 1: Verify that the appointment exists
+    const ownershipResult = await pool.query(appointmentQueries.verifyAppointmentExist, [
+      appointment_id,
+    ]);
 
-      if (appointmentResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Appointment not found.' });
-      }
+    if (ownershipResult.rows.length === 0) {
+      return res.status(404).json({ error: "Appointment not found." });
+    }
 
-      const { student_id, faculty_id } = appointmentResult.rows[0];
+    // Step 2: Update the `mode_id` for the specific appointment
+    const updateResult = await pool.query(appointmentQueries.updateMode, [
+      mode_id,
+      appointment_id,
+    ]);
 
-      if (userId !== student_id && userId !== faculty_id) {
-          return res.status(403).json({ error: 'Unauthorized to update this appointment.' });
-      }
+    const updatedAppointment = updateResult.rows[0];
 
-      // Update the mode_id for the appointment
-      const updateResult = await pool.query(appointmentQueries.updateModeQuery, [mode_id, id]);
-
-      return res.status(200).json({
-          message: 'Appointment mode updated successfully.',
-          appointment: updateResult.rows[0],
-      });
+    // Step 3: Respond with the updated appointment
+    return res.status(200).json({
+      message: "Appointment mode updated successfully.",
+      appointment: updatedAppointment,
+    });
   } catch (error) {
-      console.error('Error updating appointment mode:', error);
-      return res.status(500).json({ error: 'An error occurred while updating the appointment mode.' });
+    console.error("Error updating appointment mode:", error.message);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while updating the appointment mode." });
   }
 };
-
 
 
 module.exports = {
