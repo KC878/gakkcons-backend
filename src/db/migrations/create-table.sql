@@ -88,7 +88,7 @@ CREATE TABLE Appointments (
     status_id INT NOT NULL,
     reason TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    scheduled_date TIMESTAMP,
+    scheduled_date DATE,
     meet_link VARCHAR(255),
     FOREIGN KEY (student_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (faculty_id) REFERENCES Users(user_id) ON DELETE CASCADE,
