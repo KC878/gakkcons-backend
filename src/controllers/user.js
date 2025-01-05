@@ -6,54 +6,6 @@ const pool = require("./../db/pool");
 const generateVerificationCode = require("../utils/generateCode");
 const sendEmail = require("../utils/sendEmail");
 
-// const loginUser = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     if (!email || !password) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     const userResult = await pool.query(userQueries.getUserByEmail, [email]);
-
-//     const user = userResult.rows[0];
-
-//     if (userResult.rows.length === 0) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     const isMatch = await bcrypt.compare(password, user.password);
-
-//     if (!isMatch) {
-//       return res.status(400).json({ message: "Invalid credentials" });
-//     }
-
-//     const userVerificationQuery = await pool.query(
-//       userQueries.getUserVerification,
-//       [user.user_id, "signup_verify_user"]
-//     );
-
-//     const userVerification = userVerificationQuery.rows[0];
-
-//     if (userVerification) {
-//       return res.status(400).json({ message: "User is not verified yet." });
-//     }
-
-//     const token = jwt.sign(
-//       { user_id: user.user_id, email: user.email, user_role: user.role_id },
-//       process.env.JWT_SECRET
-//     );
-
-//     res.status(200).json({
-//       message: "Login successful",
-//       token,
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// };
-
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -89,22 +41,23 @@ const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       { user_id: user.user_id, email: user.email, user_role: user.role_id },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
     );
 
-    // Include user role (user_type) in the response
     const userType = user.role_id === 1 ? "admin" : user.role_id === 2 ? "faculty" : "student";
+
 
     res.status(200).json({
       message: "Login successful",
       token,
-      userType  // Returning the user type as part of the response
+      userType
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
-};  
+};
+
 
 const signupUser = async (req, res) => {
   try {
