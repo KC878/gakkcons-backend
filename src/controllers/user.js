@@ -255,7 +255,7 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { firstName, lastName, email, currentPassword, newPassword } =
+    const { firstName, lastName, email, currentPassword,   } =
       req.body;
 
     await pool.query("BEGIN");
