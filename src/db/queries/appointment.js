@@ -34,13 +34,13 @@ const getAppointmentsByFaculty = `
   SELECT 
     a.appointment_id, 
     a.reason,
+    a.meet_link,
     TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
     TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,
     m.mode_id AS mode_id,
     m.mode AS appointment_type,
     u.first_name AS firstname,
     u.last_name AS lastname,
-    s.status AS appointment_status,
     s.status AS status,
     TO_CHAR(a.timestamp AT TIME ZONE 'UTC', 'HH12:MI AM') || ' ' || TO_CHAR(a.timestamp AT TIME ZONE 'UTC', 'MM-DD-YYYY') AS timestamp
   FROM 
@@ -93,6 +93,7 @@ SET
 WHERE 
   appointment_id = $4;
 `;
+
 
 module.exports = {
   getAppointmentsByStudent,
