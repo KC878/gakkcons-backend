@@ -41,23 +41,22 @@ const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       { user_id: user.user_id, email: user.email, user_role: user.role_id },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET
     );
 
-    const userType = user.role_id === 1 ? "admin" : user.role_id === 2 ? "faculty" : "student";
-
+    const userType =
+      user.role_id === 1 ? "admin" : user.role_id === 2 ? "faculty" : "student";
 
     res.status(200).json({
       message: "Login successful",
       token,
-      userType
+      userType,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 const signupUser = async (req, res) => {
   try {
@@ -242,6 +241,7 @@ const getProfile = async (req, res) => {
     }
 
     res.status(200).json({
+      user_id: rows[0].user_id,
       email: rows[0].email,
       first_name: rows[0].first_name,
       last_name: rows[0].last_name,

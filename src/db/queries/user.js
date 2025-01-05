@@ -48,11 +48,11 @@ const updateUserPassword = `
 `;
 
 const getUserById = `
-  SELECT 
+  SELECT
+    user_id, 
     email,
     first_name,
-    last_name,
-    password
+    last_name
   FROM Users
   WHERE user_id = $1;  
 `;

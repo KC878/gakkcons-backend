@@ -1,27 +1,30 @@
-const pool = require("../db/pool");
-const notificationQueries = require("./../db/queries/notification");
+const { Server } = require("socket.io");
 
-let io = null; // Socket.IO instance
+let io = null;
 
-// Set Socket.IO instance for real-time updates
-const setSocketIO = (socketIO) => {
-  io = socketIO;
-};
+const initSocket = (server) => {
+  io = new Server(server, {
+    cors: {
+      origin: "*",
+    },
+  });
 
-const startNotificationEmitter = () => {
-  setInterval(async () => {
-    try {
-      const { rows } = await pool.query(notificationQueries.getNotifications); // Query all appointments
-      if (io) {
-        io.emit("appointments", rows); // Emit all appointments in real-time
+  io.on("connection", (socket) => {
+    console.log("A user connected", socket.id);
+
+    socket.on("register", (userId) => {
+      if (!socket.rooms.has(userId)) {
+        socket.join(userId);
+        console.log(`User ${userId} joined room`);
       }
-    } catch (err) {
-      console.error("Error emitting appointments:", err);
-    }
-  }, 5000); // Emit every 5 seconds
+    });
+    socket.on("disconnect", () => {
+      console.log("A user disconnected", socket.id);
+    });
+  });
+  return io;
 };
 
 module.exports = {
-  setSocketIO,
-  startNotificationEmitter,
+  initSocket,
 };
