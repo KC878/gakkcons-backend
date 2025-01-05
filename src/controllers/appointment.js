@@ -21,6 +21,8 @@ const getAppointments = async (req, res) => {
   }
 };
 
+
+
 const getAppointmentById = async (req, res) => {
   const { appointment_id } = req.params;
 
@@ -74,8 +76,77 @@ const requestAppointment = async (req, res) => {
   }
 };
 
+const updateMeetingLink = async (req, res) => {
+  const { appointment_id } = req.params;
+  const { meet_link, status_id, mode_id } = req.body;
+
+  if (!appointment_id || !status_id || !mode_id) {
+    return res.status(400).json({ message: "Invalid input." });
+  }
+
+  try {
+    console.log('Updating appointment with', { appointment_id, meet_link, status_id, mode_id });
+
+    // Execute the update query with the RETURNING clause to get updated appointment details
+    const result = await pool.query(appointmentQueries.updateMeetingLinkQuery, [
+      status_id,
+      meet_link,
+      mode_id,
+      appointment_id
+    ]);
+
+    // Check if any rows were returned (if the appointment was updated)
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    // Return the updated appointment details in the response
+    const updatedAppointment = result.rows[0];
+    res.status(200).json({
+      message: "Meeting link updated successfully.",
+      appointment: updatedAppointment
+    });
+  } catch (error) {
+    console.error("Error updating meeting link:", error.message);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+const rejectAppointments = async (req, res) => {
+  const { appointment_id } = req.params;
+  const { status_id } = req.body;
+
+  if (!status_id) {
+    return res.status(400).json({ message: "Something went wrong!." });
+  }
+
+  try {
+    console.log('Updating appointment with', { appointment_id, status_id });
+
+    // Execute the update query with the RETURNING clause to get updated appointment details
+    const result = await pool.query(appointmentQueries.rejectAppointment, [
+      status_id,
+      appointment_id
+    ]);
+    
+    // Return the updated appointment details in the response
+    const rejectAppointment = result.rows[0];
+    res.status(200).json({
+      message: "Reject appointment successfully.",
+      appointment: rejectAppointment
+    });
+  } catch (error) {
+    console.error("Error rejecting appointment:", error.message);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+
+
+}
+
 module.exports = {
   getAppointments,
   getAppointmentById,
   requestAppointment,
+  updateMeetingLink,
+  rejectAppointments
 };
