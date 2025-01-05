@@ -95,10 +95,20 @@ WHERE
 `;
 
 
+const rejectAppointment = ` 
+UPDATE Appointments
+SET
+  status_id = $1
+WHERE
+  appointment_id = $2
+`
+
+
 module.exports = {
   getAppointmentsByStudent,
   getAppointmentsByFaculty,
   getAppointmentById,
   requestAppointment_Student,
-  updateMeetingLinkQuery
+  updateMeetingLinkQuery,
+  rejectAppointment
 };
