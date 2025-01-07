@@ -74,27 +74,44 @@ const requestAppointment = async (req, res) => {
   }
 };
 
-const updateZoomLink = async (req, res) => {
-  const { appointment_id } = req.params;
-  const { zoomlink } = req.body;
+const updateAppointment = async (req, res) => {
+  const { id } = req.params;
+  const { mode, zoomlink } = req.body;
 
   try {
+    // Validate appointment ID
     if (!Number(id)) {
       return res.status(400).json({ error: "Invalid appointment ID." });
     }
 
-    const result = await pool.query(
-      "UPDATE appointments SET meet_link = $1 WHERE id = $2 RETURNING *",
-      [zoomlink, appointment_id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Appointment not found" });
+    // Validate mode
+    if (!['online', 'onsite'].includes(mode)) {
+      return res.status(400).json({ error: "Invalid mode. Must be 'online' or 'onsite'." });
     }
 
-    res.status(200).json({ message: "Zoom link updated successfully", appointment: result.rows[0] });
+    // Validate zoomlink
+    if (!zoomlink) {
+      return res.status(400).json({ error: "Zoom link is required." });
+    }
+
+    const modeId = mode === 'online' ? 1 : 2;
+
+    // Update both fields
+    const query = `UPDATE appointments SET mode_id = $1, meet_link = $2 WHERE id = $3 RETURNING *`;
+    const values = [modeId, zoomlink, id];
+
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Appointment not found." });
+    }
+
+    res.status(200).json({
+      message: "Appointment updated successfully",
+      appointment: result.rows[0],
+    });
   } catch (err) {
-    console.error("Error updating Zoom link:", err);
+    console.error("Error updating appointment:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -103,5 +120,5 @@ module.exports = {
   getAppointments,
   getAppointmentById,
   requestAppointment,
-  updateZoomLink,
+  updateAppointment,
 };

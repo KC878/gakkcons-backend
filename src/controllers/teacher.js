@@ -36,28 +36,35 @@ const updateMode = async (req, res) => {
   const { mode } = req.body;
 
   try {
+    // Validate user ID
     if (!Number(id)) {
-      return res.status(400).json({ error: "Invalid appointment ID." });
+      return res.status(400).json({ error: "Invalid user ID." });
     }
 
+    // Validate mode
     if (!['online', 'onsite'].includes(mode)) {
       return res.status(400).json({ error: "Invalid mode. Must be 'online' or 'onsite'." });
     }
 
+    // Map mode to mode_id
     const modeId = mode === 'online' ? 1 : 2;
 
+    // Update the user's mode in the database
     const result = await pool.query(
-      "UPDATE appointments SET mode_id = $1 WHERE id = $2 RETURNING *",
+      "UPDATE users SET mode_id = $1 WHERE user_id = $2 RETURNING *",
       [modeId, id]
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Appointment not found" });
+      return res.status(404).json({ error: "User not found." });
     }
 
-    res.status(200).json({ message: "Appointment mode updated successfully", appointment: result.rows[0] });
+    res.status(200).json({
+      message: "User mode updated successfully",
+      user: result.rows[0],
+    });
   } catch (err) {
-    console.error("Error updating appointment mode:", err);
+    console.error("Error updating user mode:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };

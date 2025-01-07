@@ -9,7 +9,9 @@ CREATE TABLE Users (
     password VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100),
-    email VARCHAR(100) UNIQUE NOT NULL
+    email VARCHAR(100) UNIQUE NOT NULL,
+    mode_id INT,
+    FOREIGN KEY (mode_id) REFERENCES Mode(mode_id) ON DELETE SET NULL
 );
 
 
