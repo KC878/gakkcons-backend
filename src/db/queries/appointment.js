@@ -15,20 +15,7 @@ const getAppointmentsByStudent = `
     a.student_id = $1;
 `;
 
-// const getAppointmentsByFaculty = `
-//   SELECT 
-//     a.appointment_id, 
-//     TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
-//     TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,
-//     m.mode AS appointment_type,
-//     s.status AS appointment_status
-//   FROM 
-//     Appointments a
-//   JOIN Mode m ON a.mode_id = m.mode_id
-//   JOIN Status s ON a.status_id = s.status_id
-//   WHERE 
-//     a.faculty_id = $1;
-// `;
+
 
 const getAppointmentsByFaculty = `
   SELECT 
@@ -37,8 +24,10 @@ const getAppointmentsByFaculty = `
     a.meet_link,
     TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
     TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,
+    TO_CHAR(a.scheduled_date, 'HH12:MI AM') || ' ' || TO_CHAR(a.scheduled_date, 'MM-DD-YYYY') AS appointment_timestamp,
     m.mode_id AS mode_id,
     m.mode AS appointment_type,
+    u.user_id AS userID,
     u.first_name AS firstname,
     u.last_name AS lastname,
     s.status AS status,
@@ -103,6 +92,14 @@ WHERE
   appointment_id = $2
 `
 
+const completedAppointment = ` 
+UPDATE Appointments
+SET
+  status_id = $1
+WHERE
+  appointment_id = $2
+`
+
 
 module.exports = {
   getAppointmentsByStudent,
@@ -110,5 +107,6 @@ module.exports = {
   getAppointmentById,
   requestAppointment_Student,
   updateMeetingLinkQuery,
-  rejectAppointment
+  rejectAppointment,
+  completedAppointment
 };
