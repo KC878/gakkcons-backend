@@ -9,7 +9,9 @@ CREATE TABLE Users (
     password VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100),
-    email VARCHAR(100) UNIQUE NOT NULL
+    email VARCHAR(100) UNIQUE NOT NULL,
+    id_number VARCHAR(100) UNIQUE,
+    mode VARCHAR(50) 
 );
 
 
@@ -70,6 +72,8 @@ CREATE TABLE Status (
     status_id SERIAL PRIMARY KEY,
     status VARCHAR(50) NOT NULL
 );
+
+
 
 CREATE TABLE Appointments (
     appointment_id SERIAL PRIMARY KEY,

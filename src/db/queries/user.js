@@ -43,6 +43,8 @@ const checkVerificationCode = `SELECT code, expiration_time
 const deleteVerificationCode = `DELETE FROM user_verifications 
        WHERE user_id = $1`;
 
+
+       
 const updateUserPassword = `
     UPDATE Users SET password = $1 WHERE user_id = $2;
 `;
@@ -52,17 +54,19 @@ const getUserById = `
     email,
     first_name,
     last_name,
-    password
+    password,
+    idnumber,
+    modetype
   FROM Users
   WHERE user_id = $1;  
 `;
-const updateUser = `
-  UPDATE Users
-  SET first_name = $1,
-      last_name = $2,
-      email = $3,
-      password = $4
-  WHERE user_id = $5;
+
+const updatePreferModeQuery = `
+UPDATE Users
+SET 
+  modetype = $1
+WHERE 
+  user_id = $2;
 `;
 
 module.exports = {
@@ -76,5 +80,6 @@ module.exports = {
   deleteVerificationCode,
   updateUserPassword,
   getUserById,
-  updateUser,
+  updatePreferModeQuery,
+
 };
