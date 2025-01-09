@@ -15,8 +15,6 @@ const getAppointmentsByStudent = `
     a.student_id = $1;
 `;
 
-
-
 const getAppointmentsByFaculty = `
   SELECT 
     a.appointment_id, 
@@ -42,8 +40,6 @@ const getAppointmentsByFaculty = `
     a.faculty_id = $1;
 `;
 
-
-
 const getAppointmentsByAdmin = `
   SELECT 
     a.appointment_id, 
@@ -67,8 +63,6 @@ const getAppointmentsByAdmin = `
   JOIN Users u ON a.student_id = u.user_id
 `;
 
-
-
 // Query to get a specific appointment by ID
 const getAppointmentById = `
   SELECT 
@@ -82,6 +76,18 @@ const getAppointmentById = `
   JOIN Mode m ON a.mode_id = m.mode_id
   JOIN Status s ON a.status_id = s.status_id
   WHERE a.appointment_id = $1;
+`;
+const getAppointmentStudentId = `
+  SELECT
+    a.appointment_id,
+    u1.user_id,
+    u2.first_name || ' ' || u2.last_name AS faculty_name,
+    m.mode
+  FROM Appointments a
+  JOIN Users u1 ON a.student_id = u1.user_id
+  JOIN Users u2 ON a.faculty_id = u2.user_id 
+  JOIN Mode m ON a.mode_id = m.mode_id
+  WHERE a.appointment_id = $1
 `;
 
 // Request Appointments
@@ -98,7 +104,6 @@ const updateReason = `
   RETURNING *;
 `;
 
-
 const updateMeetingLinkQuery = `
 UPDATE Appointments
 SET 
@@ -109,14 +114,13 @@ WHERE
   appointment_id = $4;
 `;
 
-
 const rejectAppointment = ` 
 UPDATE Appointments
 SET
   status_id = $1
 WHERE
   appointment_id = $2
-`
+`;
 
 const completedAppointment = ` 
 UPDATE Appointments
@@ -124,9 +128,7 @@ SET
   status_id = $1
 WHERE
   appointment_id = $2
-`
-
-
+`;
 
 const getAllAppointmentsAnalytics = `
 SELECT
@@ -161,7 +163,6 @@ WHERE
 
 `;
 
-
 module.exports = {
   getAppointmentsByStudent,
   getAppointmentsByFaculty,
@@ -171,5 +172,6 @@ module.exports = {
   updateMeetingLinkQuery,
   rejectAppointment,
   completedAppointment,
-  getAllAppointmentsAnalytics
+  getAppointmentStudentId,
+  getAllAppointmentsAnalytics,
 };
