@@ -211,13 +211,6 @@ const getAppointmentsAnalytics = async (req, res) => {
 };
 
 
-const getAppointmentsAnalyticsByID = async (req, res) => {
-
-
-  
-
-
-}
 
 
 
@@ -228,5 +221,6 @@ module.exports = {
   updateMeetingLink,
   rejectAppointments,
   completedAppoinments,
-  getAppointmentsAnalytics
+  getAppointmentsAnalytics,
+  
 };

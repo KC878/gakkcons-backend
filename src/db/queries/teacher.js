@@ -25,9 +25,10 @@ const getTeachersQuery = (search) => `
       '[]'
     ) AS subjects,
     -- Analytics: Daily, Weekly, and Yearly count of appointments
-    COUNT(CASE WHEN a.scheduled_date::date = CURRENT_DATE THEN 1 END) AS daily_appointments,
-    COUNT(CASE WHEN a.scheduled_date >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) AS weekly_appointments,
-    COUNT(CASE WHEN a.scheduled_date >= CURRENT_DATE - INTERVAL '1 year' THEN 1 END) AS yearly_appointments
+     COUNT(CASE WHEN a.status_id = 2 THEN 1 END) AS approved_appointments,
+    COUNT(CASE WHEN a.status_id = 10 THEN 1 END) AS rejected_appointments,
+    COUNT(CASE WHEN a.status_id = 1 THEN 1 END) AS pending_appointments,
+        COUNT(*) AS total_appointments
   FROM 
     users u
   JOIN 

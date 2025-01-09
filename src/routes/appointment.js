@@ -7,7 +7,8 @@ const {
   updateMeetingLink,
   rejectAppointments,
   completedAppoinments,
-  getAppointmentsAnalytics
+  getAppointmentsAnalytics,
+  getAppointmentsAnalyticsByID
 } = require("../controllers/appointment");
 
 const checkAuth = require("../middlewares/auth");
