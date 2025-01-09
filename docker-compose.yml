@@ -20,6 +20,12 @@ services:
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
       - JWT_SECRET=${JWT_SECRET}
+    command:
+      [
+        "sh",
+        "-c",
+        "npm install && npm uninstall bcrypt && npm install bcrypt && npm run db:migrate && npm run db:seed && npm run dev",
+      ]
 
     networks:
       - app-network
