@@ -41,4 +41,5 @@ const searchTeacher = async (req, res) => {
 
 module.exports = {
   getTeachers,
+  searchTeacher
 };

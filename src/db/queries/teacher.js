@@ -1,6 +1,4 @@
-
-
-const getTeachers = `
+const getTeachersQuery = (search) => `
   SELECT 
     u.first_name || ' ' || u.last_name AS name, 
     ur.role_id, 
@@ -88,4 +86,5 @@ const searchTeacher = async (query) => {
 
 module.exports = {
   getTeachersQuery,
+  searchTeacher
 };
