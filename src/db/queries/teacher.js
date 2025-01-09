@@ -23,7 +23,11 @@ const getTeachersQuery = (search) => `
         DISTINCT s.subject_name
       ) FILTER (WHERE s.subject_name IS NOT NULL),
       '[]'
-    ) AS subjects
+    ) AS subjects,
+    -- Analytics: Daily, Weekly, and Yearly count of appointments
+    COUNT(CASE WHEN a.scheduled_date::date = CURRENT_DATE THEN 1 END) AS daily_appointments,
+    COUNT(CASE WHEN a.scheduled_date >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) AS weekly_appointments,
+    COUNT(CASE WHEN a.scheduled_date >= CURRENT_DATE - INTERVAL '1 year' THEN 1 END) AS yearly_appointments
   FROM 
     users u
   JOIN 
@@ -58,6 +62,29 @@ const getTeachersQuery = (search) => `
     u.first_name;
 `;
 
+
+
+
+const searchTeacher = async (query) => {
+  const client = await pool.connect(); // Connect to the database
+  try {
+    const res = await client.query(
+      `SELECT first_name 
+       FROM users 
+       WHERE first_name ILIKE $1 
+       ORDER BY first_name 
+       LIMIT 10`,
+      [`%${query}%`] // Use ILIKE for case-insensitive matching
+    );
+    return res.rows; // Return the resulting rows
+  } catch (error) {
+    throw new Error("Error while querying the database"); // Handle query errors
+  } finally {
+    client.release(); // Release the connection
+  }
+};
+
 module.exports = {
   getTeachersQuery,
+  searchTeacher
 };

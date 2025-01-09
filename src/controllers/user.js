@@ -202,6 +202,61 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { email, verificationCode, newPassword, confirmPassword } = req.body;
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match." });
+    }
+
+    const userResult = await pool.query(userQueries.getUserByEmail, [email]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ message: "User not found." });
+    }
+
+    const user = userResult.rows[0];
+
+    const codeResult = await pool.query(userQueries.checkVerificationCode, [
+      user.user_id,
+      verificationCode,
+      "reset_password",
+    ]);
+
+    if (codeResult.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid or expired verification code." });
+    }
+
+    const verificationRecord = codeResult.rows[0];
+
+    if (verificationRecord.code !== verificationCode) {
+      return res.status(400).json({ message: "Incorrect verification code." });
+    }
+
+    const currentTime = new Date();
+    if (currentTime > new Date(verificationRecord.expiration_time)) {
+      return res.status(400).json({ message: "Verification code has expired." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(userQueries.updateUserPassword, [hashedPassword, user.user_id]);
+
+    await pool.query(userQueries.deleteVerificationCode, [user.user_id]);
+
+    res.status(200).json({
+      message: "Password has been successfully updated.",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+
+
 const resetPassword = async (req, res) => {
   try {
     const { email, newPassword } = req.body;
@@ -245,6 +300,8 @@ const getProfile = async (req, res) => {
       email: rows[0].email,
       first_name: rows[0].first_name,
       last_name: rows[0].last_name,
+      idnumber: rows[0].idnumber,
+      modetype: rows[0].modetype
     });
   } catch (err) {
     console.error("Error fetching profile info:", err);
@@ -255,8 +312,11 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { firstName, lastName, email, currentPassword, newPassword } =
+    const { firstName, lastName, email, idnumber,  currentPassword, newPassword } =
       req.body;
+
+
+      console.log(idnumber);  // Ensure this is correctly populated before executing the query
 
     await pool.query("BEGIN");
 
@@ -284,8 +344,10 @@ const updateProfile = async (req, res) => {
     const updates = {
       first_name: firstName,
       last_name: lastName,
-      // email: email,
+      email: email,
       password: newPassword ? await bcrypt.hash(newPassword, 10) : undefined,
+      idnumber,
+
     };
 
     const setClauses = [];
@@ -319,6 +381,35 @@ const updateProfile = async (req, res) => {
   }
 };
 
+
+const updatePreferMode = async (req, res) => {
+  try {
+    const { preferMode } = req.body;
+
+    // Extract user_id from token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Unauthorized access." });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decodedToken.user_id;
+
+    // Update the prefer mode
+    await pool.query(
+      userQueries.updatePreferModeQuery,
+      [preferMode, userId]
+    );
+
+    res.status(200).json({ message: "Mode updated successfully." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
 module.exports = {
   loginUser,
   signupUser,
@@ -327,4 +418,6 @@ module.exports = {
   resetPassword,
   getProfile,
   updateProfile,
+  updatePreferMode,
+  changePassword
 };
