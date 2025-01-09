@@ -10,7 +10,7 @@ CREATE TABLE Users (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100),
     email VARCHAR(100) UNIQUE NOT NULL,
-    id_number VARCHAR(100) UNIQUE,
+    idnumber VARCHAR(100) UNIQUE,
     mode VARCHAR(50) 
 );
 
