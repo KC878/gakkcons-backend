@@ -55,7 +55,7 @@ const getUserById = `
     last_name,
     password,
     id_number,
-    modetype
+    mode
   FROM Users
   WHERE user_id = $1;  
 `;
@@ -63,7 +63,7 @@ const getUserById = `
 const updatePreferModeQuery = `
 UPDATE Users
 SET 
-  modetype = $1
+  mode = $1
 WHERE 
   user_id = $2;
 `;
