@@ -13,6 +13,8 @@ const getAppointments = async (req, res) => {
       result = await pool.query(appointmentQueries.getAppointmentsByStudent, [
         req.user.user_id,
       ]);
+    } else if (req.user.user_role === 1) {
+      result = await pool.query(appointmentQueries.getAppointmentsByAdmin);
     }
 
     res.json(result.rows);
@@ -185,6 +187,21 @@ const completedAppoinments = async (req, res) => {
   }
 };
 
+const getAppointmentsAnalytics = async (req, res) => {
+  try {
+    // Execute the query to get appointment analytics
+    const result = await pool.query(
+      appointmentQueries.getAllAppointmentsAnalytics
+    );
+
+    // Return the result in the response
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching appointments analytics:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   getAppointments,
   getAppointmentById,
@@ -192,4 +209,5 @@ module.exports = {
   updateMeetingLink,
   rejectAppointments,
   completedAppoinments,
+  getAppointmentsAnalytics,
 };

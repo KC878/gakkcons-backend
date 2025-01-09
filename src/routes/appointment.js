@@ -6,7 +6,8 @@ const {
   requestAppointment,
   updateMeetingLink,
   rejectAppointments,
-  completedAppoinments
+  completedAppoinments,
+  getAppointmentsAnalytics
 } = require("../controllers/appointment");
 
 const checkAuth = require("../middlewares/auth");
@@ -19,6 +20,7 @@ appointment.post("/request", checkAuth, requestAppointment);
 appointment.put("/update/:appointment_id", checkAuth, updateMeetingLink)
 appointment.put('/reject/:appointment_id', checkAuth, rejectAppointments)
 appointment.put('/completed/:appointment_id', checkAuth, completedAppoinments)
+appointment.get('/get/analytics', checkAuth, getAppointmentsAnalytics)
 
 module.exports = appointment;
   
