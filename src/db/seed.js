@@ -8,6 +8,7 @@ dotenv.config();
 const DB_NAME = process.env.DB_NAME;
 const DB_USER = process.env.DB_USER || "postgres";
 const DB_PASSWORD = process.env.DB_PASSWORD;
+const DB_HOST = process.env.DB_HOST || "localhost";
 const SEEDERS_PATH = path.resolve(__dirname, "seeders");
 const isWindows = os.platform() === "win32";
 
@@ -25,9 +26,9 @@ fs.readdir(SEEDERS_PATH, (err, files) => {
 
   sqlFiles.forEach((file) => {
     const filePath = path.join(SEEDERS_PATH, file);
-    const command = `${
-      isWindows ? "set " : ""
-    }PGPASSWORD=${DB_PASSWORD}&& psql -U ${DB_USER} -d ${DB_NAME} -f "${filePath}"`;
+    const command = `${isWindows ? "set " : ""}PGPASSWORD=${DB_PASSWORD}${
+      isWindows ? "&&" : ""
+    } psql -U ${DB_USER} -d ${DB_NAME} -h ${DB_HOST} -f "${filePath}"`;
 
     console.log(`Running seeder: ${file}`);
     exec(command, { shell: true }, (err, stdout, stderr) => {
