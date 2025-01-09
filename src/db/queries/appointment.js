@@ -28,7 +28,7 @@ const getAppointmentsByFaculty = `
     u.user_id AS userID,
     u.first_name AS firstname,
     u.last_name AS lastname,
-    u.idnumber,
+    u.id_number,
     s.status AS status,
     TO_CHAR(a.timestamp AT TIME ZONE 'UTC', 'HH12:MI AM') || ' ' || TO_CHAR(a.timestamp AT TIME ZONE 'UTC', 'MM-DD-YYYY') AS timestamp
   FROM 
@@ -53,7 +53,7 @@ const getAppointmentsByAdmin = `
     u.user_id AS userID,
     u.first_name AS firstname,
     u.last_name AS lastname,
-    u.idnumber,
+    u.id_number,
     s.status AS status,
     TO_CHAR(a.timestamp AT TIME ZONE 'UTC', 'HH12:MI AM') || ' ' || TO_CHAR(a.timestamp AT TIME ZONE 'UTC', 'MM-DD-YYYY') AS timestamp
   FROM 
