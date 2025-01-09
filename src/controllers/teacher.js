@@ -3,7 +3,12 @@ const pool = require("./../db/pool");
 
 const getTeachers = async (req, res) => {
   try {
-    const { rows: teachers } = await pool.query(teacherQueries.getTeachers);
+    const { search } = req.query;
+
+    const query = teacherQueries.getTeachersQuery(search);
+    const values = search ? [`%${search}%`] : [];
+
+    const { rows: teachers } = await pool.query(query, values);
 
     res.json(teachers);
   } catch (error) {
@@ -36,5 +41,4 @@ const searchTeacher = async (req, res) => {
 
 module.exports = {
   getTeachers,
-  searchTeacher,
 };
