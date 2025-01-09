@@ -13,8 +13,8 @@ const getUserByEmail = `
 `;
 
 const createUser = `
-  INSERT INTO Users (password, first_name, last_name, email)
-  VALUES ($1, $2, $3, $4)
+  INSERT INTO Users (password, first_name, last_name, email, id_number)
+  VALUES ($1, $2, $3, $4, $5)
   RETURNING user_id;
 `;
 

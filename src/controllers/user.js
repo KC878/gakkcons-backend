@@ -60,7 +60,8 @@ const loginUser = async (req, res) => {
 
 const signupUser = async (req, res) => {
   try {
-    const { password, firstName, lastName, email, userType } = req.body;
+    const { password, firstName, lastName, email, userType, id_number } =
+      req.body;
 
     await pool.query("BEGIN");
 
@@ -81,6 +82,7 @@ const signupUser = async (req, res) => {
       firstName,
       lastName,
       email,
+      id_number,
     ]);
 
     if (newUserResult.rows.length === 0) {
