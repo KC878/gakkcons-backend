@@ -225,7 +225,9 @@ const changePassword = async (req, res) => {
     ]);
 
     if (codeResult.rows.length === 0) {
-      return res.status(400).json({ message: "Invalid or expired verification code." });
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired verification code." });
     }
 
     const verificationRecord = codeResult.rows[0];
@@ -236,12 +238,17 @@ const changePassword = async (req, res) => {
 
     const currentTime = new Date();
     if (currentTime > new Date(verificationRecord.expiration_time)) {
-      return res.status(400).json({ message: "Verification code has expired." });
+      return res
+        .status(400)
+        .json({ message: "Verification code has expired." });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await pool.query(userQueries.updateUserPassword, [hashedPassword, user.user_id]);
+    await pool.query(userQueries.updateUserPassword, [
+      hashedPassword,
+      user.user_id,
+    ]);
 
     await pool.query(userQueries.deleteVerificationCode, [user.user_id]);
 
@@ -253,9 +260,6 @@ const changePassword = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
-
-
 
 const resetPassword = async (req, res) => {
   try {
@@ -300,8 +304,8 @@ const getProfile = async (req, res) => {
       email: rows[0].email,
       first_name: rows[0].first_name,
       last_name: rows[0].last_name,
-      idnumber: rows[0].idnumber,
-      modetype: rows[0].modetype
+      id_number: rows[0].id_number,
+      mode: rows[0].mode,
     });
   } catch (err) {
     console.error("Error fetching profile info:", err);
@@ -312,11 +316,16 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { firstName, lastName, email, idnumber,  currentPassword, newPassword } =
-      req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      id_number,
+      currentPassword,
+      newPassword,
+    } = req.body;
 
-
-      console.log(idnumber);  // Ensure this is correctly populated before executing the query
+    console.log(id_number); // Ensure this is correctly populated before executing the query
 
     await pool.query("BEGIN");
 
@@ -346,8 +355,7 @@ const updateProfile = async (req, res) => {
       last_name: lastName,
       email: email,
       password: newPassword ? await bcrypt.hash(newPassword, 10) : undefined,
-      idnumber,
-
+      id_number,
     };
 
     const setClauses = [];
@@ -381,7 +389,6 @@ const updateProfile = async (req, res) => {
   }
 };
 
-
 const updatePreferMode = async (req, res) => {
   try {
     const { preferMode } = req.body;
@@ -397,10 +404,7 @@ const updatePreferMode = async (req, res) => {
     const userId = decodedToken.user_id;
 
     // Update the prefer mode
-    await pool.query(
-      userQueries.updatePreferModeQuery,
-      [preferMode, userId]
-    );
+    await pool.query(userQueries.updatePreferModeQuery, [preferMode, userId]);
 
     res.status(200).json({ message: "Mode updated successfully." });
   } catch (err) {
@@ -408,7 +412,6 @@ const updatePreferMode = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 module.exports = {
   loginUser,
@@ -419,5 +422,5 @@ module.exports = {
   getProfile,
   updateProfile,
   updatePreferMode,
-  changePassword
+  changePassword,
 };
