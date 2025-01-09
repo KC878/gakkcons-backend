@@ -3,13 +3,11 @@ const notificationQueries = require("../db/queries/notification");
 
 const getNotifications = async (req, res) => {
   try {
-    const { rows } = await pool.query(notificationQueries.getNotifications); // Run the query to fetch appointments
+    const studentId = req.user.user_id;
+    const { rows } = await pool.query(notificationQueries.getNotifications, [studentId, 2]);
     res.status(200).json(rows);
 
-    // Emit notifications in real-time using Socket.IO
-    // if (io) {
-    //   io.emit("appointments", rows); // Emit real-time appointment data to clients
-    // }
+    
   } catch (err) {
     console.error("Error fetching appointments:", err);
     res.status(500).json({ error: "Internal Server Error" });
