@@ -182,14 +182,43 @@ const getAppointmentsAnalytics = async (req, res) => {
   try {
     // Execute the query to get appointment analytics
     const result = await pool.query(appointmentQueries.getAllAppointmentsAnalytics);
+    
+    // Separate the count data and appointments data
+    const counts = result.rows[0]; // First row will contain the counts
+    const appointments = result.rows.map(row => ({
+      appointment_id: row.appointment_id,
+      reason: row.reason,
+      appointment_date: row.appointment_date,
+      appointment_time: row.appointment_time,
+      consultation_mode: row.consultation_mode,
+      instructor_first_name: row.instructor_first_name,
+      instructor_last_name: row.instructor_last_name,
+      appointment_status: row.appointment_status
+    }));
 
-    // Return the result in the response
-    res.json(result.rows[0]);
+    // Respond with the structured data
+    res.json({
+      total_appointments: counts.total_appointments,
+      approved_appointments: counts.approved_appointments,
+      rejected_appointments: counts.rejected_appointments,
+      pending_appointments: counts.pending_appointments,
+      appointments: appointments
+    });
   } catch (err) {
     console.error("Error fetching appointments analytics:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
+const getAppointmentsAnalyticsByID = async (req, res) => {
+
+
+  
+
+
+}
+
 
 
 module.exports = {

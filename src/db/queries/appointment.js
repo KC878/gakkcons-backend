@@ -126,38 +126,76 @@ WHERE
   appointment_id = $2
 `
 
-
-
 const getAllAppointmentsAnalytics = `
-SELECT
-  -- Analytics: Daily, Weekly, and Yearly total count of appointments
-  COUNT(CASE WHEN EXTRACT(DOW FROM a.scheduled_date) = 0 THEN 1 END) AS sunday_appointments, 
-  COUNT(CASE WHEN EXTRACT(DOW FROM a.scheduled_date) = 1 THEN 1 END) AS monday_appointments,
-  COUNT(CASE WHEN EXTRACT(DOW FROM a.scheduled_date) = 2 THEN 1 END) AS tuesday_appointments,
-  COUNT(CASE WHEN EXTRACT(DOW FROM a.scheduled_date) = 3 THEN 1 END) AS wednesday_appointments,
-  COUNT(CASE WHEN EXTRACT(DOW FROM a.scheduled_date) = 4 THEN 1 END) AS thursday_appointments,
-  COUNT(CASE WHEN EXTRACT(DOW FROM a.scheduled_date) = 5 THEN 1 END) AS friday_appointments,
-  COUNT(CASE WHEN EXTRACT(DOW FROM a.scheduled_date) = 6 THEN 1 END) AS saturday_appointments,
-
-  -- Today's total appointments (appointments for the current day)
-  COUNT(CASE WHEN a.scheduled_date::DATE = CURRENT_DATE THEN 1 END) AS daily_total_appointments,
-
-  -- Appointments for each week of the year (for the last 4 weeks as per your query)
-  COUNT(CASE WHEN EXTRACT(WEEK FROM a.scheduled_date) = 1 THEN 1 END) AS week_1_appointments,
-  COUNT(CASE WHEN EXTRACT(WEEK FROM a.scheduled_date) = 2 THEN 1 END) AS week_2_appointments,
-  COUNT(CASE WHEN EXTRACT(WEEK FROM a.scheduled_date) = 3 THEN 1 END) AS week_3_appointments,
-  COUNT(CASE WHEN EXTRACT(WEEK FROM a.scheduled_date) = 4 THEN 1 END) AS week_4_appointments,
-
-  -- Total appointments in the past year
-  COUNT(CASE WHEN a.scheduled_date >= CURRENT_DATE - INTERVAL '1 year' THEN 1 END) AS yearly_appointments
+WITH appointment_counts AS (
+  SELECT
+    COUNT(*) AS total_appointments,
+    COUNT(CASE WHEN a.status_id = 2 THEN 1 END) AS approved_appointments,
+    COUNT(CASE WHEN a.status_id = 10 THEN 1 END) AS rejected_appointments,
+    COUNT(CASE WHEN a.status_id = 1 THEN 1 END) AS pending_appointments
+  FROM 
+    appointments a
+)
+SELECT 
+  ac.total_appointments,
+  ac.approved_appointments,
+  ac.rejected_appointments,
+  ac.pending_appointments,
+  a.appointment_id, 
+  a.reason,
+  TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
+  TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,  
+  m.mode AS consultation_mode,
+  u.first_name AS instructor_first_name,
+  u.last_name AS instructor_last_name,
+  s.status AS appointment_status
 FROM 
-  appointments a
+  appointment_counts ac
 JOIN 
-  users u ON a.faculty_id = u.user_id
+  appointments a ON a.status_id IN (2) -- Fetch all statuses (approved, pending, rejected)
 JOIN 
-  user_roles ur ON ur.user_id = u.user_id
-WHERE 
-  ur.role_id = 2; -- Only count appointments for teachers
+  Mode m ON a.mode_id = m.mode_id
+JOIN 
+  Status s ON a.status_id = s.status_id
+JOIN 
+  Users u ON a.faculty_id = u.user_id; -- Assuming faculty_id refers to the instructor
+`;
+
+
+const getSpecicAppointmentsAnalytics = `
+WITH appointment_counts AS (
+  SELECT
+    COUNT(*) AS total_appointments,
+    COUNT(CASE WHEN a.status_id = 2 THEN 1 END) AS approved_appointments,
+    COUNT(CASE WHEN a.status_id = 10 THEN 1 END) AS rejected_appointments,
+    COUNT(CASE WHEN a.status_id = 1 THEN 1 END) AS pending_appointments
+  FROM 
+    appointments a
+)
+SELECT 
+  ac.total_appointments,
+  ac.approved_appointments,
+  ac.rejected_appointments,
+  ac.pending_appointments,
+  a.appointment_id, 
+  a.reason,
+  TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
+  TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,  
+  m.mode AS consultation_mode,
+  u.user_id AS instructor_id
+  u.first_name AS instructor_first_name,
+  u.last_name AS instructor_last_name,
+  s.status AS appointment_status
+FROM 
+  appointment_counts ac
+JOIN 
+  appointments a ON a.status_id IN (2) -- Fetch all statuses (approved, pending, rejected)
+JOIN 
+  Mode m ON a.mode_id = m.mode_id
+JOIN 
+  Status s ON a.status_id = s.status_id
+JOIN 
+  Users u ON a.faculty_id = u.user_id; -- Assuming faculty_id refers to the instructor
 
 `;
 
