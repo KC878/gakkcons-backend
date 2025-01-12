@@ -19,7 +19,6 @@ const getTeachers = async (req, res) => {
 
 
 
-
 const searchTeacher = async (req, res) => {
   try {
     // Retrieve query string from the request
@@ -41,5 +40,5 @@ const searchTeacher = async (req, res) => {
 
 module.exports = {
   getTeachers,
-  searchTeacher
+  searchTeacher,
 };

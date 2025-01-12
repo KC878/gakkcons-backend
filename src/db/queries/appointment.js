@@ -143,9 +143,9 @@ WHERE
 // WITH appointment_counts AS (
 //   SELECT
 //     COUNT(*) AS total_appointments,
-//     COUNT(CASE WHEN a.status_id = 2 THEN 1 END) AS approved_appointments,
-//     COUNT(CASE WHEN a.status_id = 10 THEN 1 END) AS rejected_appointments,
-//     COUNT(CASE WHEN a.status_id = 1 THEN 1 END) AS pending_appointments
+//     COUNT(CASE WHEN s.status = 'Confirmed' THEN 1 END) AS approved_appointments,
+//     COUNT(CASE WHEN s.status = 'Denied' THEN 1 END) AS rejected_appointments,
+//     COUNT(CASE WHEN s.status = 'Pending' THEN 1 END) AS pending_appointments
 //   FROM 
 //     appointments a
 // )
@@ -165,7 +165,7 @@ WHERE
 // FROM 
 //   appointment_counts ac
 // JOIN 
-//   appointments a ON a.status_id IN (2) -- Fetch all statuses (approved, pending, rejected)
+//   appointments a ON a.status_id IN (2)
 // JOIN 
 //   Mode m ON a.mode_id = m.mode_id
 // JOIN 
@@ -174,23 +174,25 @@ WHERE
 //   Users u ON a.faculty_id = u.user_id; -- Assuming faculty_id refers to the instructor
 // `;
 
-
 const getAllAppointmentsAnalytics = `
 WITH appointment_counts AS (
   SELECT
     COUNT(*) AS total_appointments,
-    COUNT(CASE WHEN a.status_id = 8 THEN 1 END) AS approved_appointments,
-    COUNT(CASE WHEN a.status_id = 10 THEN 1 END) AS rejected_appointments,
-    COUNT(CASE WHEN a.status_id = 10 THEN 1 END) AS pending_appointments
-    COUNT(CASE WHEN a.status_id = 5 THEN 1 END) AS completed_appointments
+    COUNT(CASE WHEN s.status = 'Confirmed' THEN 1 END) AS approved_appointments,
+    COUNT(CASE WHEN s.status = 'Denied' THEN 1 END) AS rejected_appointments,
+    COUNT(CASE WHEN s.status = 'Pending' THEN 1 END) AS pending_appointments,
+    COUNT(CASE WHEN s.status = 'Completed' THEN 1 END) AS completed_appointments
   FROM 
     appointments a
+  JOIN 
+    Status s ON a.status_id = s.status_id
 )
 SELECT 
   ac.total_appointments,
   ac.approved_appointments,
   ac.rejected_appointments,
   ac.pending_appointments,
+  ac.completed_appointments,
   a.appointment_id, 
   a.reason,
   TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
@@ -202,14 +204,21 @@ SELECT
 FROM 
   appointment_counts ac
 JOIN 
-  appointments a ON a.status_id IN (2) -- Fetch all statuses (approved, pending, rejected)
+  appointments a ON a.status_id IN (
+    SELECT status_id FROM Status WHERE status IN ('Confirmed', 'Denied', 'Pending', 'Completed')
+  )
 JOIN 
   Mode m ON a.mode_id = m.mode_id
 JOIN 
   Status s ON a.status_id = s.status_id
 JOIN 
-  Users u ON a.faculty_id = u.user_id; -- Assuming faculty_id refers to the instructor
+  Users u ON a.faculty_id = u.user_id
+ORDER BY 
+  a.scheduled_date ASC; -- Sort by scheduled_date in ascending order
 `;
+
+
+
 const getOverallAnalytics =  ``
 
 
