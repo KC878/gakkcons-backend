@@ -90,12 +90,11 @@ const getAppointmentStudentId = `
   WHERE a.appointment_id = $1
 `;
 
-// Request Appointments
-
-const requestAppointment_Student = `INSERT INTO Appointments 
-  (student_id, faculty_id, mode_id, status_id, reason)
-  VALUES ($1, $2, $3, $4, $5)
-  RETURNING *;`;
+const requestAppointment = `
+  INSERT INTO Appointments (student_id, faculty_id, mode_id, status_id, reason)
+  VALUES ($1, $2, (SELECT mode_id FROM Mode WHERE mode = $3), (SELECT status_id FROM Status WHERE status = $4), $5)
+  RETURNING *;
+  `;
 
 const updateReason = `
   UPDATE Appointments
@@ -227,7 +226,7 @@ module.exports = {
   getAppointmentsByFaculty,
   getAppointmentsByAdmin,
   getAppointmentById,
-  requestAppointment_Student,
+  requestAppointment,
   updateMeetingLinkQuery,
   rejectAppointment,
   completedAppointment,
