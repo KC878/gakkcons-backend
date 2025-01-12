@@ -52,20 +52,15 @@ const requestAppointment = async (req, res) => {
       return res.status(400).json({ message: "Invalid request." });
     }
 
-    let modeId;
+    const statusName = "Pending";
 
-    if (mode === "online") {
-      modeId = 1;
-    } else {
-      modeId = 2;
-    }
-
-    const status_id = 1;
-
-    const result = await pool.query(
-      appointmentQueries.requestAppointment_Student,
-      [studentId, facultyId, modeId, status_id, reason]
-    );
+    const result = await pool.query(appointmentQueries.requestAppointment, [
+      studentId,
+      facultyId,
+      mode,
+      statusName,
+      reason,
+    ]);
 
     res.status(201).json({
       message: "Appointment request submitted successfully.",
