@@ -1,6 +1,7 @@
 const getTeachersQuery = (search) => `
   SELECT 
-    u.first_name || ' ' || u.last_name AS name, 
+    u.first_name || ' ' || u.last_name AS name,
+    u.mode as faculty_mode, 
     ur.role_id, 
     ur.user_id,
     ud.department_name AS college_department,
@@ -62,9 +63,6 @@ const getTeachersQuery = (search) => `
     u.first_name;
 `;
 
-
-
-
 const searchTeacher = async (query) => {
   const client = await pool.connect(); // Connect to the database
   try {
@@ -86,5 +84,5 @@ const searchTeacher = async (query) => {
 
 module.exports = {
   getTeachersQuery,
-  searchTeacher
+  searchTeacher,
 };
