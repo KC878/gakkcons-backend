@@ -60,8 +60,15 @@ const loginUser = async (req, res) => {
 
 const signupUser = async (req, res) => {
   try {
-    const { password, firstName, lastName, email, userType, id_number } =
-      req.body;
+    const {
+      password,
+      firstName,
+      lastName,
+      email,
+      userType,
+      id_number,
+      subjectId,
+    } = req.body;
 
     await pool.query("BEGIN");
 
@@ -95,22 +102,28 @@ const signupUser = async (req, res) => {
 
     const expirationTime = new Date(Date.now() + 60 * 60 * 1000);
 
-    await pool.query(userQueries.saveVerificationCode, [
-      newUserId,
-      verificationCode,
-      expirationTime,
-      "signup_verify_user",
-    ]);
+    if (userType === "student") {
+      await pool.query(userQueries.saveVerificationCode, [
+        newUserId,
+        verificationCode,
+        expirationTime,
+        "signup_verify_user",
+      ]);
 
-    const subject = "Sign Up Verification Code";
-    const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
+      const subject = "Sign Up Verification Code";
+      const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
 
-    await sendEmail(email, subject, text);
+      await sendEmail(email, subject, text);
+    }
 
     await pool.query(userQueries.assignUserRole, [
       newUserId,
       userType === "faculty" ? 2 : userType === "admin" ? 1 : 3,
     ]);
+
+    if (userType === "faculty") {
+      await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
+    }
 
     await pool.query("COMMIT");
 

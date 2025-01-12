@@ -31,6 +31,11 @@ const assignUserRole = `
     VALUES ($1, $2);
   `;
 
+const assignSubject = `
+  INSERT INTO User_Subjects (user_id, subject_id)
+  VALUES ($1, $2)
+`;
+
 const saveVerificationCode = `
     INSERT INTO user_verifications (user_id, code, expiration_time, code_type)
     VALUES ($1, $2, $3, $4)
@@ -80,4 +85,5 @@ module.exports = {
   updateUserPassword,
   getUserById,
   updatePreferModeQuery,
+  assignSubject,
 };

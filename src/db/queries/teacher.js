@@ -1,6 +1,7 @@
 const getTeachersQuery = (search) => `
   SELECT 
-    u.first_name || ' ' || u.last_name AS name, 
+    u.first_name || ' ' || u.last_name AS name,
+    u.mode as faculty_mode, 
     ur.role_id, 
     ur.user_id,
     ud.department_name AS college_department,
@@ -92,5 +93,5 @@ const searchTeacher = async (query) => {
 
 module.exports = {
   getTeachersQuery,
-  searchTeacher
+  searchTeacher,
 };
