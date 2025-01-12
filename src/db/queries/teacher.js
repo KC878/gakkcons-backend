@@ -26,9 +26,11 @@ const getTeachersQuery = (search) => `
       '[]'
     ) AS subjects,
     -- Analytics: Daily, Weekly, and Yearly count of appointments
-    COUNT(CASE WHEN a.scheduled_date::date = CURRENT_DATE THEN 1 END) AS daily_appointments,
-    COUNT(CASE WHEN a.scheduled_date >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) AS weekly_appointments,
-    COUNT(CASE WHEN a.scheduled_date >= CURRENT_DATE - INTERVAL '1 year' THEN 1 END) AS yearly_appointments
+    COUNT(CASE WHEN st.status = 'Confirmed' THEN 1 END) AS approved_appointments,
+    COUNT(CASE WHEN st.status = 'Denied' THEN 1 END) AS rejected_appointments,
+    COUNT(CASE WHEN st.status = 'Completed' THEN 1 END) AS completed_appointments,
+    COUNT(CASE WHEN st.status = 'Pending' THEN 1 END) AS pending_appointments,
+    COUNT(*) AS total_appointments
   FROM 
     users u
   JOIN 
@@ -63,8 +65,15 @@ const getTeachersQuery = (search) => `
     u.first_name;
 `;
 
+
+
+
+
+
+
+
 const searchTeacher = async (query) => {
-  const client = await pool.connect(); // Connect to the database
+  const client = await pool.connect(); 
   try {
     const res = await client.query(
       `SELECT first_name 
@@ -72,13 +81,13 @@ const searchTeacher = async (query) => {
        WHERE first_name ILIKE $1 
        ORDER BY first_name 
        LIMIT 10`,
-      [`%${query}%`] // Use ILIKE for case-insensitive matching
+      [`%${query}%`] 
     );
-    return res.rows; // Return the resulting rows
+    return res.rows; 
   } catch (error) {
-    throw new Error("Error while querying the database"); // Handle query errors
+    throw new Error("Error while querying the database"); 
   } finally {
-    client.release(); // Release the connection
+    client.release(); 
   }
 };
 

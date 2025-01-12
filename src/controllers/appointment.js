@@ -77,17 +77,30 @@ const requestAppointment = async (req, res) => {
   }
 };
 
+
+
 const updateMeetingLink = async (req, res) => {
-  const { appointment_id } = req.params;
-  const { meet_link, status_id, mode_id } = req.body;
+  const { appointment_id } = req.params;  
+  const { status, meet_link, mode } = req.body;
   const io = getSocket();
 
-  if (!appointment_id || !status_id || !mode_id) {
+  if (!appointment_id || !status || !mode) {
     return res.status(400).json({ message: "Invalid input." });
   }
 
   try {
-    // Execute the update query with the RETURNING clause to get updated appointment details
+    const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [status]);
+    if (statusResult.rowCount === 0) {
+      return res.status(400).json({ message: `Invalid status: ${status}` });
+    }
+    const status_id = statusResult.rows[0].status_id;  
+
+    const modeResult = await pool.query(appointmentQueries.getModeIdQuery, [mode]);
+    if (modeResult.rowCount === 0) {
+      return res.status(400).json({ message: `Invalid mode: ${mode}` });
+    }
+    const mode_id = modeResult.rows[0].mode_id;  
+
     const result = await pool.query(appointmentQueries.updateMeetingLinkQuery, [
       status_id,
       meet_link,
@@ -95,23 +108,26 @@ const updateMeetingLink = async (req, res) => {
       appointment_id,
     ]);
 
-    // Check if any rows were returned (if the appointment was updated)
     if (result.rowCount === 0) {
       return res.status(404).json({ message: "Appointment not found." });
     }
+
     const studentResult = await pool.query(
       appointmentQueries.getAppointmentStudentId,
       [appointment_id]
     );
 
+
     const studentId = studentResult.rows[0].user_id;
     const facultyName = studentResult.rows[0].faculty_name;
-    const mode = studentResult.rows[0].mode;
+    const appointmentMode = studentResult.rows[0].mode;
 
+    // Emit notification to the student
     io.to(studentId).emit("notification", {
-      text: `${facultyName} has accepted your consultation request. Venue: ${mode}`,
+      text: `${facultyName} has accepted your consultation request. Venue: ${appointmentMode}`,
       route: "/tabs/notification",
     });
+
     const updatedAppointment = result.rows[0];
     res.status(200).json({
       message: "Meeting link updated successfully.",
@@ -119,88 +135,170 @@ const updateMeetingLink = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating meeting link:", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-const rejectAppointments = async (req, res) => {
-  const { appointment_id } = req.params;
-  const { status_id } = req.body;
 
-  if (!status_id) {
-    return res.status(400).json({ message: "Something went wrong!." });
+const rejectAppointments = async (req, res) => {
+  const { appointment_id } = req.params;  
+  const { status } = req.body;  
+
+  if (!status) {
+    return res.status(400).json({ message: "Status is required to reject appointment." });
   }
 
   try {
-    console.log("Updating appointment with", { appointment_id, status_id });
+    const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [status]);
+    if (statusResult.rowCount === 0) {
+      return res.status(400).json({ message: `Invalid status: ${status}` });
+    }
+    const status_id = statusResult.rows[0].status_id;  
 
-    // Execute the update query with the RETURNING clause to get updated appointment details
+    console.log("Rejecting appointment with", { appointment_id, status_id });
+
     const result = await pool.query(appointmentQueries.rejectAppointment, [
-      status_id,
-      appointment_id,
+      status_id,  
+      appointment_id,  
     ]);
 
-    // Return the updated appointment details in the response
-    const rejectAppointment = result.rows[0];
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    const rejectedAppointment = result.rows[0];
     res.status(200).json({
-      message: "Reject appointment successfully.",
-      appointment: rejectAppointment,
+      message: "Appointment rejected successfully.",
+      appointment: rejectedAppointment,
     });
   } catch (error) {
     console.error("Error rejecting appointment:", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-const completedAppoinments = async (req, res) => {
-  const { appointment_id } = req.params;
-  const { status_id } = req.body;
 
-  if (!status_id) {
-    return res.status(400).json({ message: "Something went wrong!." });
+
+const completedAppointments = async (req, res) => {
+  const { appointment_id } = req.params;  
+  const { status } = req.body;  
+
+  if (!status) {
+    return res.status(400).json({ message: "Status is required to completed appointment." });
   }
 
   try {
+    const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [status]);
+    if (statusResult.rowCount === 0) {
+      return res.status(400).json({ message: `Invalid status: ${status}` });
+    }
+    const status_id = statusResult.rows[0].status_id;  
+
     console.log("Completing appointment with", { appointment_id, status_id });
 
-    // Execute the update query with the RETURNING clause to get updated appointment details
-    const result = await pool.query(appointmentQueries.rejectAppointment, [
-      status_id,
-      appointment_id,
+    const result = await pool.query(appointmentQueries.completedAppointment, [
+      status_id,  
+      appointment_id,  
     ]);
 
-    // Return the updated appointment details in the response
-    const rejectAppointment = result.rows[0];
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    const completedAppointment = result.rows[0];
     res.status(200).json({
-      message: "Completed appointment successfully.",
-      appointment: rejectAppointment,
+      message: "Appointment completed successfully.",
+      appointment: completedAppointment,
     });
   } catch (error) {
-    console.error("Error completing appointment:", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    console.error("Error rejecting appointment:", error.message);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+// const getAppointmentsAnalytics = async (req, res) => {
+//   try {
+//     // Execute the query to get appointment analytics
+//     const result = await pool.query(appointmentQueries.getAllAppointmentsAnalytics);
+    
+//     // Separate the count data and appointments data
+//     const counts = result.rows[0]; // First row will contain the counts
+//     const appointments = result.rows.map(row => ({
+//       appointment_id: row.appointment_id,
+//       reason: row.reason,
+//       appointment_date: row.appointment_date,
+//       appointment_time: row.appointment_time,
+//       consultation_mode: row.consultation_mode,
+//       instructor_first_name: row.instructor_first_name,
+//       instructor_last_name: row.instructor_last_name,
+//       appointment_status: row.appointment_status
+//     }));
+
+//     // Respond with the structured data
+//     res.json({
+//       total_appointments: counts.total_appointments,
+//       approved_appointments: counts.approved_appointments,
+//       rejected_appointments: counts.rejected_appointments,
+//       pending_appointments: counts.pending_appointments,
+//       completed_appointments: counts.completed_appointments,
+//       appointments: appointments,
+//     });
+//   } catch (err) {
+//     console.error("Error fetching appointments analytics:", err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// };
+
 
 const getAppointmentsAnalytics = async (req, res) => {
   try {
     // Execute the query to get appointment analytics
-    const result = await pool.query(
-      appointmentQueries.getAllAppointmentsAnalytics
-    );
+    const result = await pool.query(appointmentQueries.getAllAppointmentsAnalytics);
 
-    // Return the result in the response
-    res.json(result.rows[0]);
+    if (result.rows.length === 0) {
+      return res.json({
+        total_appointments: 0,
+        approved_appointments: 0,
+        rejected_appointments: 0,
+        pending_appointments: 0,
+        completed_appointments: 0,
+        appointments: []
+      });
+    }
+
+    // Separate the count data and filter for confirmed appointments only
+    const counts = {
+      total_appointments: result.rows[0].total_appointments,
+      approved_appointments: result.rows[0].approved_appointments,
+      rejected_appointments: result.rows[0].rejected_appointments,
+      pending_appointments: result.rows[0].pending_appointments,
+      completed_appointments: result.rows[0].completed_appointments
+
+    };
+
+    const appointments = result.rows
+      .filter(row => row.appointment_status === "Confirmed") // Only include confirmed appointments
+      .map(row => ({
+        appointment_id: row.appointment_id,
+        reason: row.reason,
+        appointment_date: row.appointment_date,
+        appointment_time: row.appointment_time,
+        consultation_mode: row.consultation_mode,
+        instructor_first_name: row.instructor_first_name,
+        instructor_last_name: row.instructor_last_name,
+        appointment_status: row.appointment_status
+      }));
+
+    // Respond with the structured data
+    res.json({
+      ...counts,
+      appointments
+    });
   } catch (err) {
     console.error("Error fetching appointments analytics:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 module.exports = {
   getAppointments,
@@ -208,6 +306,6 @@ module.exports = {
   requestAppointment,
   updateMeetingLink,
   rejectAppointments,
-  completedAppoinments,
+  completedAppointments,
   getAppointmentsAnalytics,
 };

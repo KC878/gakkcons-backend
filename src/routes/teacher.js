@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { getTeachers, searchTeacher } = require("../controllers/teacher");
+const { getTeachers, searchTeacher, getTeacherByAdmin } = require("../controllers/teacher");
 const checkAuth = require("../middlewares/auth");
 
 const teacher = express.Router();
