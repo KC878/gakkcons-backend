@@ -72,7 +72,7 @@ const getTeachersQuery = (search) => `
 
 
 const searchTeacher = async (query) => {
-  const client = await pool.connect(); // Connect to the database
+  const client = await pool.connect(); 
   try {
     const res = await client.query(
       `SELECT first_name 
@@ -80,13 +80,13 @@ const searchTeacher = async (query) => {
        WHERE first_name ILIKE $1 
        ORDER BY first_name 
        LIMIT 10`,
-      [`%${query}%`] // Use ILIKE for case-insensitive matching
+      [`%${query}%`] 
     );
-    return res.rows; // Return the resulting rows
+    return res.rows; 
   } catch (error) {
-    throw new Error("Error while querying the database"); // Handle query errors
+    throw new Error("Error while querying the database"); 
   } finally {
-    client.release(); // Release the connection
+    client.release(); 
   }
 };
 
