@@ -4,10 +4,11 @@ const notificationQueries = require("../db/queries/notification");
 const getNotifications = async (req, res) => {
   try {
     const studentId = req.user.user_id;
-    const { rows } = await pool.query(notificationQueries.getNotifications, [studentId, 2]);
+    const { rows } = await pool.query(notificationQueries.getNotifications, [
+      studentId,
+      "Confirmed",
+    ]);
     res.status(200).json(rows);
-
-    
   } catch (err) {
     console.error("Error fetching appointments:", err);
     res.status(500).json({ error: "Internal Server Error" });

@@ -14,7 +14,7 @@ const getNotifications = `
   JOIN Users u2 ON a.faculty_id = u2.user_id  
   JOIN Mode m ON a.mode_id = m.mode_id  
   JOIN Status s ON a.status_id = s.status_id
-  WHERE a.student_id = $1 AND a.status_id = $2
+  WHERE a.student_id = $1 AND a.status_id = (SELECT status_id FROM Status WHERE status = $2)
   ORDER BY a.timestamp DESC;
   
 `;
