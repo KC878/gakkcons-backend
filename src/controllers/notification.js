@@ -1,6 +1,6 @@
 const pool = require("../db/pool");
 const notificationQueries = require("../db/queries/notification");
-
+//Notification controller
 const getNotifications = async (req, res) => {
   try {
     const studentId = req.user.user_id;
