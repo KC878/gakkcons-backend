@@ -17,6 +17,10 @@ const getAppointments = async (req, res) => {
       result = await pool.query(appointmentQueries.getAppointmentsByAdmin);
     }
 
+    if (!result || !result.rows) {
+      return res.status(404).json({ message: "No appointments found." });
+    }
+
     res.json(result.rows);
   } catch (err) {
     console.error("Error fetching appointments:", err);
