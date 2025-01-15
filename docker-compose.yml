@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   app:
     build: .
@@ -21,12 +23,7 @@ services:
       - EMAIL_PASS=${EMAIL_PASS}
       - JWT_SECRET=${JWT_SECRET}
     command:
-      [
-        "sh",
-        "-c",
-        "npm install && npm uninstall bcrypt && npm install bcrypt && npm run db:migrate && npm run db:seed && npm run dev",
-      ]
-
+      ["sh", "-c", "npm run db:migrate && npm run db:seed && npm run dev"]
     networks:
       - app-network
 
@@ -40,7 +37,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - ./db_data:/var/lib/postgresql/data
     networks:
       - app-network
     healthcheck:
@@ -53,6 +50,3 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  db_data:

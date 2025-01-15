@@ -16,6 +16,13 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(cors());
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "running",
+    message: "Server is running.",
+  });
+});
+
 initSocket(server);
 
 app.use("/api", api);

@@ -5,7 +5,7 @@ const userQueries = require("./../db/queries/user");
 const pool = require("./../db/pool");
 const generateVerificationCode = require("../utils/generateCode");
 const sendEmail = require("../utils/sendEmail");
-
+//Login
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -327,7 +327,7 @@ const getProfile = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
+//Update Profile
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
