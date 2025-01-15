@@ -12,15 +12,19 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// Middleware setup
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(cors());
 
-// Initialize Socket.IO
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "running",
+    message: "Server is running.",
+  });
+});
+
 initSocket(server);
 
-// API routes
 app.use("/api", api);
 
 const PORT = process.env.PORT || 5000;

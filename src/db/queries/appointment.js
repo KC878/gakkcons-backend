@@ -96,6 +96,14 @@ const requestAppointment = `
   RETURNING *;
   `;
 
+const checkRecentAppointment = `
+  SELECT scheduled_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' AS scheduled_date
+  FROM appointments
+  WHERE student_id = $1 AND faculty_id = $2
+  ORDER BY scheduled_date DESC
+  LIMIT 1;
+`;
+
 const updateReason = `
   UPDATE Appointments
   SET reason = $1
@@ -103,10 +111,9 @@ const updateReason = `
   RETURNING *;
 `;
 
+const getStatusIdQuery = "SELECT status_id FROM Status WHERE status = $1";
 
-const getStatusIdQuery = 'SELECT status_id FROM Status WHERE status = $1';  
-
-const getModeIdQuery = 'SELECT mode_id FROM Mode WHERE mode = $1';  
+const getModeIdQuery = "SELECT mode_id FROM Mode WHERE mode = $1";
 
 const updateMeetingLinkQuery = `
 UPDATE Appointments
@@ -119,7 +126,6 @@ WHERE
 RETURNING *;
 `;
 
-
 const rejectAppointment = ` 
 UPDATE Appointments
 SET status_id = $1
@@ -127,7 +133,6 @@ WHERE appointment_id = $2
 RETURNING *;
 
 `;
-
 
 const completedAppointment = ` 
 UPDATE Appointments
@@ -137,7 +142,6 @@ WHERE
   appointment_id = $2
 `;
 
-
 // const getAllAppointmentsAnalytics = `
 // WITH appointment_counts AS (
 //   SELECT
@@ -145,31 +149,31 @@ WHERE
 //     COUNT(CASE WHEN s.status = 'Confirmed' THEN 1 END) AS approved_appointments,
 //     COUNT(CASE WHEN s.status = 'Denied' THEN 1 END) AS rejected_appointments,
 //     COUNT(CASE WHEN s.status = 'Pending' THEN 1 END) AS pending_appointments
-//   FROM 
+//   FROM
 //     appointments a
 // )
-// SELECT 
+// SELECT
 //   ac.total_appointments,
 //   ac.approved_appointments,
 //   ac.rejected_appointments,
 //   ac.pending_appointments,
-//   a.appointment_id, 
+//   a.appointment_id,
 //   a.reason,
 //   TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
-//   TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,  
+//   TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,
 //   m.mode AS consultation_mode,
 //   u.first_name AS instructor_first_name,
 //   u.last_name AS instructor_last_name,
 //   s.status AS appointment_status
-// FROM 
+// FROM
 //   appointment_counts ac
-// JOIN 
+// JOIN
 //   appointments a ON a.status_id IN (2)
-// JOIN 
+// JOIN
 //   Mode m ON a.mode_id = m.mode_id
-// JOIN 
+// JOIN
 //   Status s ON a.status_id = s.status_id
-// JOIN 
+// JOIN
 //   Users u ON a.faculty_id = u.user_id; -- Assuming faculty_id refers to the instructor
 // `;
 
@@ -216,10 +220,7 @@ ORDER BY
   a.scheduled_date ASC; -- Sort by scheduled_date in ascending order
 `;
 
-
-
-const getOverallAnalytics =  ``
-
+const getOverallAnalytics = ``;
 
 module.exports = {
   getAppointmentsByStudent,
@@ -233,5 +234,6 @@ module.exports = {
   getAppointmentStudentId,
   getAllAppointmentsAnalytics,
   getStatusIdQuery,
-  getModeIdQuery
+  getModeIdQuery,
+  checkRecentAppointment,
 };
