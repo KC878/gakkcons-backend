@@ -120,10 +120,12 @@ UPDATE Appointments
 SET 
   status_id = $1,   
   meet_link = $2,
-  mode_id = $3
+  mode_id = $3,
+  scheduled_date = $4
 WHERE 
-  appointment_id = $4
+  appointment_id = $5
 RETURNING *;
+
 `;
 
 const rejectAppointment = ` 
@@ -220,7 +222,14 @@ ORDER BY
   a.scheduled_date ASC; -- Sort by scheduled_date in ascending order
 `;
 
-const getOverallAnalytics = ``;
+
+
+const insertReport = `
+  INSERT INTO Reports (appointment_id, student_id, reporter_id, report, timestamp, currentdate)
+  VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+  RETURNING *;
+`;
+
 
 module.exports = {
   getAppointmentsByStudent,
@@ -235,5 +244,5 @@ module.exports = {
   getAllAppointmentsAnalytics,
   getStatusIdQuery,
   getModeIdQuery,
-  checkRecentAppointment,
+  insertReport
 };
