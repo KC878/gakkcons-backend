@@ -60,12 +60,12 @@ const requestAppointment = async (req, res) => {
       appointmentQueries.checkRecentAppointment,
       [studentId, facultyId]
     );
-    console.log("recent appointments", recentAppointment);
+
     if (recentAppointment.rows.length > 0) {
       const recentScheduledDate = new Date(
         recentAppointment.rows[0].scheduled_date
       );
-      console.log("recent schedelud date", recentScheduledDate);
+
       const now = new Date();
       const nextDay12AM = new Date(
         now.getFullYear(),
