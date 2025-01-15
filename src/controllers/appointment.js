@@ -75,12 +75,12 @@ const requestAppointment = async (req, res) => {
 
 
 const updateMeetingLink = async (req, res) => {
-  const { appointment_id } = req.params;  
-  const { status, meet_link, mode } = req.body;
+  const { appointment_id } = req.params;
+  const { status, meet_link, mode, scheduled_date } = req.body; 
   const io = getSocket();
 
-  if (!appointment_id || !status || !mode) {
-    return res.status(400).json({ message: "Invalid input." });
+  if (!appointment_id || !status || !mode || !scheduled_date) {
+    return res.status(400).json({ message: "Invalid input. All fields are required." });
   }
 
   try {
@@ -88,18 +88,20 @@ const updateMeetingLink = async (req, res) => {
     if (statusResult.rowCount === 0) {
       return res.status(400).json({ message: `Invalid status: ${status}` });
     }
-    const status_id = statusResult.rows[0].status_id;  
+    const status_id = statusResult.rows[0].status_id;
 
+    // Validate mode
     const modeResult = await pool.query(appointmentQueries.getModeIdQuery, [mode]);
     if (modeResult.rowCount === 0) {
       return res.status(400).json({ message: `Invalid mode: ${mode}` });
     }
-    const mode_id = modeResult.rows[0].mode_id;  
+    const mode_id = modeResult.rows[0].mode_id;
 
     const result = await pool.query(appointmentQueries.updateMeetingLinkQuery, [
       status_id,
       meet_link,
       mode_id,
+      scheduled_date, 
       appointment_id,
     ]);
 
@@ -107,17 +109,11 @@ const updateMeetingLink = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found." });
     }
 
-    const studentResult = await pool.query(
-      appointmentQueries.getAppointmentStudentId,
-      [appointment_id]
-    );
-
-
+    const studentResult = await pool.query(appointmentQueries.getAppointmentStudentId, [appointment_id]);
     const studentId = studentResult.rows[0].user_id;
     const facultyName = studentResult.rows[0].faculty_name;
     const appointmentMode = studentResult.rows[0].mode;
 
-    // Emit notification to the student
     io.to(studentId).emit("notification", {
       text: `${facultyName} has accepted your consultation request. Venue: ${appointmentMode}`,
       route: "/tabs/notification",
@@ -125,7 +121,7 @@ const updateMeetingLink = async (req, res) => {
 
     const updatedAppointment = result.rows[0];
     res.status(200).json({
-      message: "Meeting link updated successfully.",
+      message: "Meeting link and scheduled date updated successfully.",
       appointment: updatedAppointment,
     });
   } catch (error) {
@@ -133,6 +129,7 @@ const updateMeetingLink = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
 
 
 const rejectAppointments = async (req, res) => {
@@ -210,38 +207,7 @@ const completedAppointments = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-// const getAppointmentsAnalytics = async (req, res) => {
-//   try {
-//     // Execute the query to get appointment analytics
-//     const result = await pool.query(appointmentQueries.getAllAppointmentsAnalytics);
-    
-//     // Separate the count data and appointments data
-//     const counts = result.rows[0]; // First row will contain the counts
-//     const appointments = result.rows.map(row => ({
-//       appointment_id: row.appointment_id,
-//       reason: row.reason,
-//       appointment_date: row.appointment_date,
-//       appointment_time: row.appointment_time,
-//       consultation_mode: row.consultation_mode,
-//       instructor_first_name: row.instructor_first_name,
-//       instructor_last_name: row.instructor_last_name,
-//       appointment_status: row.appointment_status
-//     }));
 
-//     // Respond with the structured data
-//     res.json({
-//       total_appointments: counts.total_appointments,
-//       approved_appointments: counts.approved_appointments,
-//       rejected_appointments: counts.rejected_appointments,
-//       pending_appointments: counts.pending_appointments,
-//       completed_appointments: counts.completed_appointments,
-//       appointments: appointments,
-//     });
-//   } catch (err) {
-//     console.error("Error fetching appointments analytics:", err);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   }
-// };
 
 
 const getAppointmentsAnalytics = async (req, res) => {
@@ -294,6 +260,44 @@ const getAppointmentsAnalytics = async (req, res) => {
   }
 };
 
+const requestReport = async (req, res) => {
+  const { appointment_id, report } = req.body;
+
+  const reporter_id = req.user.user_id; 
+  if (!appointment_id || !report || !reporter_id) {
+    return res.status(400).json({ message: "Invalid input." });
+  }
+
+  try {
+    const appointmentResult = await pool.query(
+      'SELECT student_id FROM Appointments WHERE appointment_id = $1', 
+      [appointment_id]
+    );
+
+    if (appointmentResult.rowCount === 0) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    const student_id = appointmentResult.rows[0].student_id;
+
+    const result = await pool.query(appointmentQueries.insertReport, [
+      appointment_id,
+      student_id,  
+      reporter_id,
+      report,
+      new Date(),  
+    ]);
+
+    res.status(201).json({
+      message: "Report submitted successfully.",
+      report: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Error submitting report:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 module.exports = {
   getAppointments,
@@ -303,4 +307,5 @@ module.exports = {
   rejectAppointments,
   completedAppointments,
   getAppointmentsAnalytics,
+  requestReport
 };

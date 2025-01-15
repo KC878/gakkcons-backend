@@ -113,10 +113,12 @@ UPDATE Appointments
 SET 
   status_id = $1,   
   meet_link = $2,
-  mode_id = $3
+  mode_id = $3,
+  scheduled_date = $4
 WHERE 
-  appointment_id = $4
+  appointment_id = $5
 RETURNING *;
+
 `;
 
 
@@ -138,40 +140,7 @@ WHERE
 `;
 
 
-// const getAllAppointmentsAnalytics = `
-// WITH appointment_counts AS (
-//   SELECT
-//     COUNT(*) AS total_appointments,
-//     COUNT(CASE WHEN s.status = 'Confirmed' THEN 1 END) AS approved_appointments,
-//     COUNT(CASE WHEN s.status = 'Denied' THEN 1 END) AS rejected_appointments,
-//     COUNT(CASE WHEN s.status = 'Pending' THEN 1 END) AS pending_appointments
-//   FROM 
-//     appointments a
-// )
-// SELECT 
-//   ac.total_appointments,
-//   ac.approved_appointments,
-//   ac.rejected_appointments,
-//   ac.pending_appointments,
-//   a.appointment_id, 
-//   a.reason,
-//   TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
-//   TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,  
-//   m.mode AS consultation_mode,
-//   u.first_name AS instructor_first_name,
-//   u.last_name AS instructor_last_name,
-//   s.status AS appointment_status
-// FROM 
-//   appointment_counts ac
-// JOIN 
-//   appointments a ON a.status_id IN (2)
-// JOIN 
-//   Mode m ON a.mode_id = m.mode_id
-// JOIN 
-//   Status s ON a.status_id = s.status_id
-// JOIN 
-//   Users u ON a.faculty_id = u.user_id; -- Assuming faculty_id refers to the instructor
-// `;
+
 
 const getAllAppointmentsAnalytics = `
 WITH appointment_counts AS (
@@ -218,7 +187,11 @@ ORDER BY
 
 
 
-const getOverallAnalytics =  ``
+const insertReport = `
+  INSERT INTO Reports (appointment_id, student_id, reporter_id, report, timestamp, currentdate)
+  VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+  RETURNING *;
+`;
 
 
 module.exports = {
@@ -233,5 +206,6 @@ module.exports = {
   getAppointmentStudentId,
   getAllAppointmentsAnalytics,
   getStatusIdQuery,
-  getModeIdQuery
+  getModeIdQuery,
+  insertReport
 };

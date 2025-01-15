@@ -7,7 +7,8 @@ const {
   updateMeetingLink,
   rejectAppointments,
   completedAppointments,
-  getAppointmentsAnalytics
+  getAppointmentsAnalytics,
+  requestReport
 } = require("../controllers/appointment");
 
 const checkAuth = require("../middlewares/auth");
@@ -21,6 +22,7 @@ appointment.put("/update/:appointment_id", checkAuth, updateMeetingLink)
 appointment.put('/reject/:appointment_id', checkAuth, rejectAppointments)
 appointment.put('/completed/:appointment_id', checkAuth, completedAppointments)
 appointment.get('/get/analytics', checkAuth, getAppointmentsAnalytics)
+appointment.post('/report', checkAuth, requestReport); // New endpoint for report
 
 module.exports = appointment;
   
