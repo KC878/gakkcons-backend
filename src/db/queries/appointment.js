@@ -237,6 +237,7 @@ module.exports = {
   getAppointmentsByAdmin,
   getAppointmentById,
   requestAppointment,
+  checkRecentAppointment,
   updateMeetingLinkQuery,
   rejectAppointment,
   completedAppointment,
@@ -244,5 +245,6 @@ module.exports = {
   getAllAppointmentsAnalytics,
   getStatusIdQuery,
   getModeIdQuery,
-  insertReport
+  insertReport,
+  updateReason
 };
