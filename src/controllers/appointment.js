@@ -1,3 +1,4 @@
+const moment = require("moment");
 const pool = require("../db/pool");
 const appointmentQueries = require("../db/queries/appointment");
 const { getSocket } = require("../utils/socketIO");
@@ -56,27 +57,20 @@ const requestAppointment = async (req, res) => {
       return res.status(400).json({ message: "Invalid request." });
     }
 
+    await pool.query("BEGIN");
+
     const recentAppointment = await pool.query(
       appointmentQueries.checkRecentAppointment,
       [studentId, facultyId]
     );
 
     if (recentAppointment.rows.length > 0) {
-      const recentScheduledDate = new Date(
+      const recentScheduledDate = moment(
         recentAppointment.rows[0].scheduled_date
       );
+      const now = moment();
 
-      const now = new Date();
-      const nextDay12AM = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + 1,
-        0,
-        0,
-        0
-      );
-
-      if (nextDay12AM <= recentScheduledDate) {
+      if (recentScheduledDate.isSameOrAfter(now, "day")) {
         return res.status(400).json({
           message:
             "You are not allowed to request an appointment with the same instructor twice in a day. Please try again tomorrow.",
@@ -94,11 +88,15 @@ const requestAppointment = async (req, res) => {
       reason,
     ]);
 
+    await pool.query("COMMIT");
+
     res.status(201).json({
       message: "Appointment request submitted successfully.",
       appointment: result.rows[0],
     });
   } catch (error) {
+    await pool.query("ROLLBACK");
+
     console.error(error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
@@ -106,14 +104,17 @@ const requestAppointment = async (req, res) => {
 
 const updateMeetingLink = async (req, res) => {
   const { appointment_id } = req.params;
-  const { status, meet_link, mode, scheduled_date } = req.body; 
+  const { status, meet_link, mode, scheduled_date } = req.body;
   const io = getSocket();
 
   if (!appointment_id || !status || !mode || !scheduled_date) {
-    return res.status(400).json({ message: "Invalid input. All fields are required." });
+    return res
+      .status(400)
+      .json({ message: "Invalid input. All fields are required." });
   }
 
   try {
+    await pool.query("BEGIN");
     const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [
       status,
     ]);
@@ -123,7 +124,9 @@ const updateMeetingLink = async (req, res) => {
     const status_id = statusResult.rows[0].status_id;
 
     // Validate mode
-    const modeResult = await pool.query(appointmentQueries.getModeIdQuery, [mode]);
+    const modeResult = await pool.query(appointmentQueries.getModeIdQuery, [
+      mode,
+    ]);
     if (modeResult.rowCount === 0) {
       return res.status(400).json({ message: `Invalid mode: ${mode}` });
     }
@@ -133,7 +136,7 @@ const updateMeetingLink = async (req, res) => {
       status_id,
       meet_link,
       mode_id,
-      scheduled_date, 
+      scheduled_date,
       appointment_id,
     ]);
 
@@ -151,16 +154,20 @@ const updateMeetingLink = async (req, res) => {
     const appointmentMode = studentResult.rows[0].mode;
 
     io.to(studentId).emit("notification", {
-      text: `${facultyName} has accepted your consultation request. Venue: ${appointmentMode}`,
+      text: `${facultyName} has accepted your consultation request. Venue: ${appointmentMode}. Date: ${moment(
+        scheduled_date
+      ).format("MMM DD, YYYY [at] hh:mm A")}`,
       route: "/tabs/notification",
     });
 
     const updatedAppointment = result.rows[0];
+    await pool.query("COMMIT");
     res.status(200).json({
       message: "Meeting link and scheduled date updated successfully.",
       appointment: updatedAppointment,
     });
   } catch (error) {
+    await pool.query("ROLLBACK");
     console.error("Error updating meeting link:", error.message);
     res
       .status(500)
@@ -271,7 +278,6 @@ const completedAppointments = async (req, res) => {
 //       appointment_status: row.appointment_status
 //     }));
 
-
 const getAppointmentsAnalytics = async (req, res) => {
   try {
     // Execute the query to get appointment analytics
@@ -326,14 +332,14 @@ const getAppointmentsAnalytics = async (req, res) => {
 const requestReport = async (req, res) => {
   const { appointment_id, report } = req.body;
 
-  const reporter_id = req.user.user_id; 
+  const reporter_id = req.user.user_id;
   if (!appointment_id || !report || !reporter_id) {
     return res.status(400).json({ message: "Invalid input." });
   }
 
   try {
     const appointmentResult = await pool.query(
-      'SELECT student_id FROM Appointments WHERE appointment_id = $1', 
+      "SELECT student_id FROM Appointments WHERE appointment_id = $1",
       [appointment_id]
     );
 
@@ -345,10 +351,10 @@ const requestReport = async (req, res) => {
 
     const result = await pool.query(appointmentQueries.insertReport, [
       appointment_id,
-      student_id,  
+      student_id,
       reporter_id,
       report,
-      new Date(),  
+      new Date(),
     ]);
 
     res.status(201).json({
@@ -361,7 +367,6 @@ const requestReport = async (req, res) => {
   }
 };
 
-
 module.exports = {
   getAppointments,
   getAppointmentById,
@@ -370,5 +375,5 @@ module.exports = {
   rejectAppointments,
   completedAppointments,
   getAppointmentsAnalytics,
-  requestReport
+  requestReport,
 };

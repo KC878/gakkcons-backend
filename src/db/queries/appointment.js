@@ -82,7 +82,8 @@ const getAppointmentStudentId = `
     a.appointment_id,
     u1.user_id,
     u2.first_name || ' ' || u2.last_name AS faculty_name,
-    m.mode
+    m.mode,
+    a.scheduled_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' AS scheduled_date
   FROM Appointments a
   JOIN Users u1 ON a.student_id = u1.user_id
   JOIN Users u2 ON a.faculty_id = u2.user_id 
@@ -222,14 +223,11 @@ ORDER BY
   a.scheduled_date ASC; -- Sort by scheduled_date in ascending order
 `;
 
-
-
 const insertReport = `
   INSERT INTO Reports (appointment_id, student_id, reporter_id, report, timestamp, currentdate)
   VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
   RETURNING *;
 `;
-
 
 module.exports = {
   getAppointmentsByStudent,
@@ -246,5 +244,5 @@ module.exports = {
   getStatusIdQuery,
   getModeIdQuery,
   insertReport,
-  updateReason
+  updateReason,
 };
