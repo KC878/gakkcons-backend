@@ -122,8 +122,7 @@ SET
   status_id = $1,   
   meet_link = $2,
   mode_id = $3,
-  scheduled_date = $4,
-  updated_at = $6
+  scheduled_date = $4
 WHERE 
   appointment_id = $5
 RETURNING *;
@@ -205,8 +204,10 @@ SELECT
   TO_CHAR(a.scheduled_date, 'YYYY-MM-DD') AS appointment_date,
   TO_CHAR(a.scheduled_date, 'HH24:MI') AS appointment_time,  
   m.mode AS consultation_mode,
-  u.first_name AS instructor_first_name,
-  u.last_name AS instructor_last_name,
+  faculty.first_name AS instructor_first_name,
+  faculty.last_name AS instructor_last_name,
+  student.first_name AS student_first_name,
+  student.last_name AS student_last_name,
   s.status AS appointment_status
 FROM 
   appointment_counts ac
@@ -219,9 +220,12 @@ JOIN
 JOIN 
   Status s ON a.status_id = s.status_id
 JOIN 
-  Users u ON a.faculty_id = u.user_id
+  Users faculty ON a.faculty_id = faculty.user_id
+JOIN 
+  Users student ON a.student_id = student.user_id
 ORDER BY 
-  a.scheduled_date ASC; -- Sort by scheduled_date in ascending order
+  a.scheduled_date ASC;
+
 `;
 
 const insertReport = `
