@@ -49,6 +49,7 @@ const getTeachersQuery = (search) => `
     subjects s ON us.subject_id = s.subject_id
   WHERE 
     ur.role_id = 2
+    AND u.mode IN ('Onsite', 'Online')
     ${
       search
         ? `
@@ -65,15 +66,8 @@ const getTeachersQuery = (search) => `
     u.first_name;
 `;
 
-
-
-
-
-
-
-
 const searchTeacher = async (query) => {
-  const client = await pool.connect(); 
+  const client = await pool.connect();
   try {
     const res = await client.query(
       `SELECT first_name 
@@ -81,13 +75,13 @@ const searchTeacher = async (query) => {
        WHERE first_name ILIKE $1 
        ORDER BY first_name 
        LIMIT 10`,
-      [`%${query}%`] 
+      [`%${query}%`]
     );
-    return res.rows; 
+    return res.rows;
   } catch (error) {
-    throw new Error("Error while querying the database"); 
+    throw new Error("Error while querying the database");
   } finally {
-    client.release(); 
+    client.release();
   }
 };
 
