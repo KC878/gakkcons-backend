@@ -131,6 +131,7 @@ const updateMeetingLink = async (req, res) => {
       return res.status(400).json({ message: `Invalid mode: ${mode}` });
     }
     const mode_id = modeResult.rows[0].mode_id;
+    const updated_at = new Date();
 
     const result = await pool.query(appointmentQueries.updateMeetingLinkQuery, [
       status_id,
@@ -138,6 +139,7 @@ const updateMeetingLink = async (req, res) => {
       mode_id,
       scheduled_date,
       appointment_id,
+      updated_at,
     ]);
 
     if (result.rowCount === 0) {
