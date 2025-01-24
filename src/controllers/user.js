@@ -67,7 +67,7 @@ const signupUser = async (req, res) => {
       email,
       userType,
       id_number,
-      subjectId,
+      // subjectId,
     } = req.body;
 
     await pool.query("BEGIN");
@@ -102,28 +102,26 @@ const signupUser = async (req, res) => {
 
     const expirationTime = new Date(Date.now() + 60 * 60 * 1000);
 
-    if (userType === "student") {
-      await pool.query(userQueries.saveVerificationCode, [
-        newUserId,
-        verificationCode,
-        expirationTime,
-        "signup_verify_user",
-      ]);
+    await pool.query(userQueries.saveVerificationCode, [
+      newUserId,
+      verificationCode,
+      expirationTime,
+      "signup_verify_user",
+    ]);
 
-      const subject = "Sign Up Verification Code";
-      const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
+    const subject = "Sign Up Verification Code";
+    const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
 
-      await sendEmail(email, subject, text);
-    }
+    await sendEmail(email, subject, text);
 
     await pool.query(userQueries.assignUserRole, [
       newUserId,
       userType === "faculty" ? 2 : userType === "admin" ? 1 : 3,
     ]);
 
-    if (userType === "faculty") {
-      await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
-    }
+    // if (userType === "faculty") {
+    //   await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
+    // }
 
     await pool.query("COMMIT");
 
@@ -210,7 +208,7 @@ const deleteUser = async (req, res) => {
 
   try {
     // Begin transaction
-    await pool.query('BEGIN');
+    await pool.query("BEGIN");
 
     // Delete user by ID (cascades will handle related records)
     const deleteQuery = `
@@ -222,32 +220,33 @@ const deleteUser = async (req, res) => {
     if (result.rowCount === 0) {
       // If no rows were deleted, return a 404 error
       return res.status(404).json({
-        status: 'error',
-        message: 'User not found',
+        status: "error",
+        message: "User not found",
       });
     }
 
     // Commit transaction
-    await pool.query('COMMIT');
+    await pool.query("COMMIT");
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       message: `User with ID ${user_id} deleted successfully`,
     });
   } catch (error) {
     // Rollback transaction on error
-    await pool.query('ROLLBACK');
-    console.error('Error deleting user:', error);
+    await pool.query("ROLLBACK");
+    console.error("Error deleting user:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'Internal Server Error',
+      status: "error",
+      message: "Internal Server Error",
     });
   }
 };
 const updateUser = async (req, res) => {
   try {
     const { user_id } = req.params;
-    const { first_name, last_name, email, password, id_number, subject_id } = req.body;
+    const { first_name, last_name, email, password, id_number, subject_id } =
+      req.body;
 
     await pool.query("BEGIN");
 
@@ -267,12 +266,12 @@ const updateUser = async (req, res) => {
     // Conditionally add password to the query if it exists
     if (password) {
       updateQuery += `, password = $5`;
-      values.push(hashedPassword);  // Push the hashed password
+      values.push(hashedPassword); // Push the hashed password
     }
 
     // Finalizing the query with the WHERE clause
     updateQuery += ` WHERE user_id = $${values.length + 1} RETURNING user_id`;
-    values.push(user_id);  // Add the user_id to the values array
+    values.push(user_id); // Add the user_id to the values array
 
     const result = await pool.query(updateQuery, values);
 
@@ -282,7 +281,10 @@ const updateUser = async (req, res) => {
 
     // If the user is a faculty and subject_id is provided, update subject
     if (subject_id) {
-      await pool.query('UPDATE user_subjects SET subject_id = $1 WHERE user_id = $2', [subject_id, user_id]);
+      await pool.query(
+        "UPDATE user_subjects SET subject_id = $1 WHERE user_id = $2",
+        [subject_id, user_id]
+      );
     }
 
     await pool.query("COMMIT");
@@ -294,9 +296,6 @@ const updateUser = async (req, res) => {
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
-
-
-
 
 const verifyUser = async (req, res) => {
   try {
@@ -607,7 +606,6 @@ const getSubjects = async (req, res) => {
   }
 };
 
-
 const getUsers = async (req, res) => {
   try {
     // Execute the query to fetch all users with their roles by joining the `users`, `user_roles`, and `roles` tables
@@ -618,22 +616,22 @@ const getUsers = async (req, res) => {
       LEFT JOIN roles ON user_roles.role_id = roles.role_id
       WHERE roles.role_name != 'admin'
     `);
-    
 
     // Check if data is found
     if (result.rows.length > 0) {
       return res.status(200).json({ status: "success", data: result.rows });
     } else {
-      return res.status(404).json({ status: "error", message: "No users found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "No users found" });
     }
   } catch (err) {
     console.error("Error fetching users:", err.message);
-    return res.status(500).json({ status: "error", message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ status: "error", message: "Internal Server Error" });
   }
 };
-
-
-
 
 module.exports = {
   loginUser,
@@ -649,5 +647,5 @@ module.exports = {
   getSubjects,
   getUsers,
   deleteUser,
-  updateUser
+  updateUser,
 };
