@@ -55,8 +55,8 @@ const getTeachersQuery = (search) => `
   LEFT JOIN 
     subjects s ON us.subject_id = s.subject_id
   WHERE 
-    ur.role_id = 2
-    AND u.mode IN ('Onsite', 'Online')
+    ur.role_id = 1
+    AND (u.mode IN ('Onsite', 'Online') OR u.mode IS NULL)
     ${
       search
         ? `

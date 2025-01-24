@@ -8,7 +8,6 @@ const sendEmail = require("../utils/sendEmail");
 //Login
 
 
-
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -23,6 +22,11 @@ const loginUser = async (req, res) => {
 
     if (userResult.rows.length === 0) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Check if the user is active (if is_active == 1, return error)
+    if (user.is_active === 1) {
+      return res.status(400).json({ message: "User account is currently active." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -42,33 +46,25 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "User is not verified yet." });
     }
 
-    // Fetch the role name dynamically
-    const roleResult = await pool.query(
-      'SELECT role_name FROM roles WHERE role_id = $1',
-      [user.role_id]
-    );
-
-    const userRole = roleResult.rows[0]?.role_name;
-
-    if (!userRole) {
-      return res.status(500).json({ message: "User role not found" });
-    }
-
     const token = jwt.sign(
       { user_id: user.user_id, email: user.email, user_role: user.role_id },
       process.env.JWT_SECRET
     );
 
+    const userType =
+      user.role_id === 1 ? "faculty" : user.role_id === 2 ? "admin" : "student";
+
     res.status(200).json({
       message: "Login successful",
       token,
-      userType: userRole, // Dynamically set userType based on role_name
+      userType,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 
 const signupUser = async (req, res) => {
@@ -79,8 +75,7 @@ const signupUser = async (req, res) => {
       lastName,
       email,
       userType,
-      id_number,
-      // subjectId,
+      id_number
     } = req.body;
 
     await pool.query("BEGIN");
@@ -115,26 +110,23 @@ const signupUser = async (req, res) => {
 
     const expirationTime = new Date(Date.now() + 60 * 60 * 1000);
 
-    await pool.query(userQueries.saveVerificationCode, [
-      newUserId,
-      verificationCode,
-      expirationTime,
-      "signup_verify_user",
-    ]);
+      await pool.query(userQueries.saveVerificationCode, [
+        newUserId,
+        verificationCode,
+        expirationTime,
+        "signup_verify_user",
+      ]);
 
-    const subject = "Sign Up Verification Code";
-    const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
+      const subject = "Sign Up Verification Code";
+      const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
 
-    await sendEmail(email, subject, text);
+      await sendEmail(email, subject, text);
+    
 
     await pool.query(userQueries.assignUserRole, [
       newUserId,
-      userType === "faculty" ? 2 : userType === "admin" ? 1 : 3,
+      userType === "faculty" ? 1 : userType === "admin" ? 2 : 3,
     ]);
-
-    // if (userType === "faculty") {
-    //   await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
-    // }
 
     await pool.query("COMMIT");
 
@@ -150,110 +142,11 @@ const signupUser = async (req, res) => {
 };
 
 
-
-// const signupUserByAdmin = async (req, res) => {
-//   try {
-//     const {
-//       password,
-//       firstName,
-//       lastName,
-//       email,
-//       userType,
-//       id_number,
-//       studentID, // Added studentID for students
-//       subjectId,
-//     } = req.body;
-
-//     await pool.query("BEGIN");
-
-//     // Check if the email already exists
-//     const emailCheckResult = await pool.query(userQueries.checkEmailExists, [
-//       email,
-//     ]);
-
-//     if (emailCheckResult.rows.length > 0) {
-//       return res
-//         .status(400)
-//         .json({ status: "error", message: "Email already exists" });
-//     }
-
-//     // Hash the password
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     // Create the user
-//     const newUserResult = await pool.query(userQueries.createUser, [
-//       hashedPassword,
-//       firstName,
-//       lastName,
-//       email,
-//       id_number || null, // Handle optional ID number
-//     ]);
-
-//     if (newUserResult.rows.length === 0) {
-//       throw new Error("Failed to create user");
-//     }
-
-//     const newUserId = newUserResult.rows[0].user_id;
-
-//     // Fetch the role_id for 'faculty' and 'student' from the roles table
-//     const rolesResult = await pool.query(
-//       'SELECT role_id, role_name FROM roles WHERE role_name IN ($1, $2)',
-//       ['faculty', 'student']
-//     );
-
-//     const roleMap = rolesResult.rows.reduce((acc, { role_id, role_name }) => {
-//       acc[role_name] = role_id;
-//       return acc;
-//     }, {});
-
-//     const facultyRoleId = roleMap['faculty'];
-//     const studentRoleId = roleMap['student'];
-
-//     // If the faculty or student role does not exist, respond with an error
-//     if (!facultyRoleId || !studentRoleId) {
-//       throw new Error("Required role(s) do not exist");
-//     }
-
-//     // Assign the user role based on the userType
-//     let roleId;
-//     if (userType === "faculty") {
-//       roleId = facultyRoleId;
-//     }  else if (userType === "student") {
-//       roleId = studentRoleId;
-//     }
-
-//     await pool.query(userQueries.assignUserRole, [
-//       newUserId,
-//       roleId,
-//     ]);
-
-//     // If the user is a student, assign the studentID
-//     if (userType === "student" && studentID) {
-//       // Assuming there's a table where you store the studentID (e.g., student_details table)
-//       await pool.query(userQueries.assignStudentID, [newUserId, studentID]);
-//     }
-
-//     // Assign subject if the user is faculty
-//     if (userType === "faculty" && subjectId) {
-//       await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
-//     }
-
-//     await pool.query("COMMIT");
-
-//     res.status(201).json({
-//       message: `User created successfully by admin.`,
-//       userId: newUserId,
-//     });
-//   } catch (err) {
-//     await pool.query("ROLLBACK");
-//     console.error(err.message);
-//     res.status(500).json({ status: "error", message: "Internal Server Error" });
-//   }
-// };
-
+// with default password 2025@lastname
 const signupUserByAdmin = async (req, res) => {
   try {
     const {
+      password,
       firstName,
       lastName,
       email,
@@ -275,11 +168,12 @@ const signupUserByAdmin = async (req, res) => {
         .json({ status: "error", message: "Email already exists" });
     }
 
-    // Create the default password: 2025@lastname
-    const defaultPassword = `2025@${lastName}`;
+    // Set default password if none is provided
+    const defaultPassword = `2025@${lastName.toLowerCase()}`;
+    const finalPassword = password || defaultPassword;
 
-    // Hash the default password
-    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
     // Create the user
     const newUserResult = await pool.query(userQueries.createUser, [
@@ -296,36 +190,10 @@ const signupUserByAdmin = async (req, res) => {
 
     const newUserId = newUserResult.rows[0].user_id;
 
-    // Fetch the role_id for 'faculty' and 'student' from the roles table
-    const rolesResult = await pool.query(
-      'SELECT role_id, role_name FROM roles WHERE role_name IN ($1, $2)',
-      ['faculty', 'student']
-    );
-
-    const roleMap = rolesResult.rows.reduce((acc, { role_id, role_name }) => {
-      acc[role_name] = role_id;
-      return acc;
-    }, {});
-
-    const facultyRoleId = roleMap['faculty'];
-    const studentRoleId = roleMap['student'];
-
-    // If the faculty or student role does not exist, respond with an error
-    if (!facultyRoleId || !studentRoleId) {
-      throw new Error("Required role(s) do not exist");
-    }
-
-    // Assign the user role based on the userType
-    let roleId;
-    if (userType === "faculty") {
-      roleId = facultyRoleId;
-    } else if (userType === "student") {
-      roleId = studentRoleId;
-    }
-
+    // Assign the user role
     await pool.query(userQueries.assignUserRole, [
       newUserId,
-      roleId,
+      userType === "faculty" ? 1 : userType === "admin" ? 2 : 3,
     ]);
 
     // Assign subject if the user is faculty
@@ -338,7 +206,7 @@ const signupUserByAdmin = async (req, res) => {
     res.status(201).json({
       message: `User created successfully by admin.`,
       userId: newUserId,
-      password: defaultPassword,  // Return the generated password
+      defaultPassword: finalPassword, // Include the default password in the response
     });
   } catch (err) {
     await pool.query("ROLLBACK");
@@ -353,14 +221,14 @@ const deleteUser = async (req, res) => {
 
   try {
     // Begin transaction
-    await pool.query("BEGIN");
+    await pool.query('BEGIN');
 
-    // Update the user's is_active column to 1 (soft delete)
     const updateQuery = `
       UPDATE users
       SET is_active = 1
       WHERE user_id = $1
     `;
+    
     const result = await pool.query(updateQuery, [user_id]);
 
     if (result.rowCount === 0) {
@@ -371,7 +239,6 @@ const deleteUser = async (req, res) => {
         message: "User not found",
       });
     }
-
     // Commit transaction
     await pool.query("COMMIT");
 
@@ -391,12 +258,10 @@ const deleteUser = async (req, res) => {
 };
 
 
-
 const updateUser = async (req, res) => {
   try {
     const { user_id } = req.params;
-    const { first_name, last_name, email, password, id_number, subject_id } =
-      req.body;
+    const { first_name, last_name, email, password, id_number, subject_id } = req.body;
 
     await pool.query("BEGIN");
 
@@ -416,12 +281,12 @@ const updateUser = async (req, res) => {
     // Conditionally add password to the query if it exists
     if (password) {
       updateQuery += `, password = $5`;
-      values.push(hashedPassword); // Push the hashed password
+      values.push(hashedPassword);  // Push the hashed password
     }
 
     // Finalizing the query with the WHERE clause
     updateQuery += ` WHERE user_id = $${values.length + 1} RETURNING user_id`;
-    values.push(user_id); // Add the user_id to the values array
+    values.push(user_id);  // Add the user_id to the values array
 
     const result = await pool.query(updateQuery, values);
 
@@ -431,10 +296,7 @@ const updateUser = async (req, res) => {
 
     // If the user is a faculty and subject_id is provided, update subject
     if (subject_id) {
-      await pool.query(
-        "UPDATE user_subjects SET subject_id = $1 WHERE user_id = $2",
-        [subject_id, user_id]
-      );
+      await pool.query('UPDATE user_subjects SET subject_id = $1 WHERE user_id = $2', [subject_id, user_id]);
     }
 
     await pool.query("COMMIT");
@@ -446,6 +308,9 @@ const updateUser = async (req, res) => {
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
+
+
+
 
 const verifyUser = async (req, res) => {
   try {
@@ -755,6 +620,8 @@ const getSubjects = async (req, res) => {
     });
   }
 };
+
+
 const getUsers = async (req, res) => {
   try {
     // Execute the query to fetch all users with their roles by joining the `users`, `user_roles`, and `roles` tables
@@ -792,6 +659,7 @@ const getUsers = async (req, res) => {
 };
 
 
+
 module.exports = {
   loginUser,
   signupUser,
@@ -806,5 +674,5 @@ module.exports = {
   getSubjects,
   getUsers,
   deleteUser,
-  updateUser,
+  updateUser
 };
