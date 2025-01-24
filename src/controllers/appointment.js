@@ -102,6 +102,81 @@ const requestAppointment = async (req, res) => {
   }
 };
 
+// const updateMeetingLink = async (req, res) => {
+//   const { appointment_id } = req.params;
+//   const { status, meet_link, mode, scheduled_date } = req.body;
+//   const io = getSocket();
+
+//   if (!appointment_id || !status || !mode || !scheduled_date) {
+//     return res
+//       .status(400)
+//       .json({ message: "Invalid input. All fields are required." });
+//   }
+
+//   try {
+//     await pool.query("BEGIN");
+//     const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [
+//       status,
+//     ]);
+//     if (statusResult.rowCount === 0) {
+//       return res.status(400).json({ message: `Invalid status: ${status}` });
+//     }
+//     const status_id = statusResult.rows[0].status_id;
+
+//     // Validate mode
+//     const modeResult = await pool.query(appointmentQueries.getModeIdQuery, [
+//       mode,
+//     ]);
+//     if (modeResult.rowCount === 0) {
+//       return res.status(400).json({ message: `Invalid mode: ${mode}` });
+//     }
+//     const mode_id = modeResult.rows[0].mode_id;
+//     const updated_at = new Date();
+
+//     const result = await pool.query(appointmentQueries.updateMeetingLinkQuery, [
+//       status_id,
+//       meet_link,
+//       mode_id,
+//       scheduled_date,
+//       updated_at,
+//       appointment_id,
+//     ]);
+
+//     if (result.rowCount === 0) {
+//       return res.status(404).json({ message: "Appointment not found." });
+//     }
+
+//     const studentResult = await pool.query(
+//       appointmentQueries.getAppointmentStudentId,
+//       [appointment_id]
+//     );
+
+//     const studentId = studentResult.rows[0].user_id;
+//     const facultyName = studentResult.rows[0].faculty_name;
+//     const appointmentMode = studentResult.rows[0].mode;
+
+//     io.to(studentId).emit("notification", {
+//       text: `${facultyName} has accepted your consultation request. Venue: ${appointmentMode}. Date: ${moment(
+//         scheduled_date
+//       ).format("MMM DD, YYYY [at] hh:mm A")}`,
+//       route: "/tabs/notification",
+//     });
+
+//     const updatedAppointment = result.rows[0];
+//     await pool.query("COMMIT");
+//     res.status(200).json({
+//       message: "Meeting link and scheduled date updated successfully.",
+//       appointment: updatedAppointment,
+//     });
+//   } catch (error) {
+//     await pool.query("ROLLBACK");
+//     console.error("Error updating meeting link:", error.message);
+//     res
+//       .status(500)
+//       .json({ message: "Internal Server Error", error: error.message });
+//   }
+// };
+
 const updateMeetingLink = async (req, res) => {
   const { appointment_id } = req.params;
   const { status, meet_link, mode, scheduled_date } = req.body;
@@ -115,6 +190,8 @@ const updateMeetingLink = async (req, res) => {
 
   try {
     await pool.query("BEGIN");
+
+    // Validate status
     const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [
       status,
     ]);
@@ -133,6 +210,20 @@ const updateMeetingLink = async (req, res) => {
     const mode_id = modeResult.rows[0].mode_id;
     const updated_at = new Date();
 
+    // Check for overlapping appointments
+    const overlapResult = await pool.query(
+      `SELECT appointment_id FROM appointments 
+       WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' AND $1::timestamp + INTERVAL '1 hour' 
+       AND appointment_id != $2`,
+      [scheduled_date, appointment_id]
+    );
+
+    let warning = null;
+    if (overlapResult.rowCount > 0) {
+      warning = "There are other appointments scheduled within 1 hour of this time.";
+    }
+
+    // Update the appointment
     const result = await pool.query(appointmentQueries.updateMeetingLinkQuery, [
       status_id,
       meet_link,
@@ -143,6 +234,7 @@ const updateMeetingLink = async (req, res) => {
     ]);
 
     if (result.rowCount === 0) {
+      await pool.query("ROLLBACK");
       return res.status(404).json({ message: "Appointment not found." });
     }
 
@@ -167,6 +259,7 @@ const updateMeetingLink = async (req, res) => {
     res.status(200).json({
       message: "Meeting link and scheduled date updated successfully.",
       appointment: updatedAppointment,
+      warning,
     });
   } catch (error) {
     await pool.query("ROLLBACK");
@@ -176,6 +269,7 @@ const updateMeetingLink = async (req, res) => {
       .json({ message: "Internal Server Error", error: error.message });
   }
 };
+
 
 const rejectAppointments = async (req, res) => {
   const { appointment_id } = req.params;
