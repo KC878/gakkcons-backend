@@ -6,6 +6,9 @@ const pool = require("./../db/pool");
 const generateVerificationCode = require("../utils/generateCode");
 const sendEmail = require("../utils/sendEmail");
 //Login
+
+
+
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -39,24 +42,34 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "User is not verified yet." });
     }
 
+    // Fetch the role name dynamically
+    const roleResult = await pool.query(
+      'SELECT role_name FROM roles WHERE role_id = $1',
+      [user.role_id]
+    );
+
+    const userRole = roleResult.rows[0]?.role_name;
+
+    if (!userRole) {
+      return res.status(500).json({ message: "User role not found" });
+    }
+
     const token = jwt.sign(
       { user_id: user.user_id, email: user.email, user_role: user.role_id },
       process.env.JWT_SECRET
     );
 
-    const userType =
-      user.role_id === 1 ? "admin" : user.role_id === 2 ? "faculty" : "student";
-
     res.status(200).json({
       message: "Login successful",
       token,
-      userType,
+      userType: userRole, // Dynamically set userType based on role_name
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 const signupUser = async (req, res) => {
   try {
@@ -136,10 +149,111 @@ const signupUser = async (req, res) => {
   }
 };
 
+
+
+// const signupUserByAdmin = async (req, res) => {
+//   try {
+//     const {
+//       password,
+//       firstName,
+//       lastName,
+//       email,
+//       userType,
+//       id_number,
+//       studentID, // Added studentID for students
+//       subjectId,
+//     } = req.body;
+
+//     await pool.query("BEGIN");
+
+//     // Check if the email already exists
+//     const emailCheckResult = await pool.query(userQueries.checkEmailExists, [
+//       email,
+//     ]);
+
+//     if (emailCheckResult.rows.length > 0) {
+//       return res
+//         .status(400)
+//         .json({ status: "error", message: "Email already exists" });
+//     }
+
+//     // Hash the password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Create the user
+//     const newUserResult = await pool.query(userQueries.createUser, [
+//       hashedPassword,
+//       firstName,
+//       lastName,
+//       email,
+//       id_number || null, // Handle optional ID number
+//     ]);
+
+//     if (newUserResult.rows.length === 0) {
+//       throw new Error("Failed to create user");
+//     }
+
+//     const newUserId = newUserResult.rows[0].user_id;
+
+//     // Fetch the role_id for 'faculty' and 'student' from the roles table
+//     const rolesResult = await pool.query(
+//       'SELECT role_id, role_name FROM roles WHERE role_name IN ($1, $2)',
+//       ['faculty', 'student']
+//     );
+
+//     const roleMap = rolesResult.rows.reduce((acc, { role_id, role_name }) => {
+//       acc[role_name] = role_id;
+//       return acc;
+//     }, {});
+
+//     const facultyRoleId = roleMap['faculty'];
+//     const studentRoleId = roleMap['student'];
+
+//     // If the faculty or student role does not exist, respond with an error
+//     if (!facultyRoleId || !studentRoleId) {
+//       throw new Error("Required role(s) do not exist");
+//     }
+
+//     // Assign the user role based on the userType
+//     let roleId;
+//     if (userType === "faculty") {
+//       roleId = facultyRoleId;
+//     }  else if (userType === "student") {
+//       roleId = studentRoleId;
+//     }
+
+//     await pool.query(userQueries.assignUserRole, [
+//       newUserId,
+//       roleId,
+//     ]);
+
+//     // If the user is a student, assign the studentID
+//     if (userType === "student" && studentID) {
+//       // Assuming there's a table where you store the studentID (e.g., student_details table)
+//       await pool.query(userQueries.assignStudentID, [newUserId, studentID]);
+//     }
+
+//     // Assign subject if the user is faculty
+//     if (userType === "faculty" && subjectId) {
+//       await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
+//     }
+
+//     await pool.query("COMMIT");
+
+//     res.status(201).json({
+//       message: `User created successfully by admin.`,
+//       userId: newUserId,
+//     });
+//   } catch (err) {
+//     await pool.query("ROLLBACK");
+//     console.error(err.message);
+//     res.status(500).json({ status: "error", message: "Internal Server Error" });
+//   }
+// };
+
 const signupUserByAdmin = async (req, res) => {
   try {
     const {
-      password,
       firstName,
       lastName,
       email,
@@ -161,8 +275,11 @@ const signupUserByAdmin = async (req, res) => {
         .json({ status: "error", message: "Email already exists" });
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Create the default password: 2025@lastname
+    const defaultPassword = `2025@${lastName}`;
+
+    // Hash the default password
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
     // Create the user
     const newUserResult = await pool.query(userQueries.createUser, [
@@ -179,10 +296,36 @@ const signupUserByAdmin = async (req, res) => {
 
     const newUserId = newUserResult.rows[0].user_id;
 
-    // Assign the user role
+    // Fetch the role_id for 'faculty' and 'student' from the roles table
+    const rolesResult = await pool.query(
+      'SELECT role_id, role_name FROM roles WHERE role_name IN ($1, $2)',
+      ['faculty', 'student']
+    );
+
+    const roleMap = rolesResult.rows.reduce((acc, { role_id, role_name }) => {
+      acc[role_name] = role_id;
+      return acc;
+    }, {});
+
+    const facultyRoleId = roleMap['faculty'];
+    const studentRoleId = roleMap['student'];
+
+    // If the faculty or student role does not exist, respond with an error
+    if (!facultyRoleId || !studentRoleId) {
+      throw new Error("Required role(s) do not exist");
+    }
+
+    // Assign the user role based on the userType
+    let roleId;
+    if (userType === "faculty") {
+      roleId = facultyRoleId;
+    } else if (userType === "student") {
+      roleId = studentRoleId;
+    }
+
     await pool.query(userQueries.assignUserRole, [
       newUserId,
-      userType === "faculty" ? 2 : userType === "admin" ? 1 : 3,
+      roleId,
     ]);
 
     // Assign subject if the user is faculty
@@ -195,6 +338,7 @@ const signupUserByAdmin = async (req, res) => {
     res.status(201).json({
       message: `User created successfully by admin.`,
       userId: newUserId,
+      password: defaultPassword,  // Return the generated password
     });
   } catch (err) {
     await pool.query("ROLLBACK");
@@ -203,6 +347,7 @@ const signupUserByAdmin = async (req, res) => {
   }
 };
 
+
 const deleteUser = async (req, res) => {
   const { user_id } = req.params; // Assuming `user_id` is passed as a URL parameter
 
@@ -210,15 +355,17 @@ const deleteUser = async (req, res) => {
     // Begin transaction
     await pool.query("BEGIN");
 
-    // Delete user by ID (cascades will handle related records)
-    const deleteQuery = `
-      DELETE FROM users
+    // Update the user's is_active column to 1 (soft delete)
+    const updateQuery = `
+      UPDATE users
+      SET is_active = 1
       WHERE user_id = $1
     `;
-    const result = await pool.query(deleteQuery, [user_id]);
+    const result = await pool.query(updateQuery, [user_id]);
 
     if (result.rowCount === 0) {
-      // If no rows were deleted, return a 404 error
+      // If no rows were updated, return a 404 error
+      await pool.query("ROLLBACK");
       return res.status(404).json({
         status: "error",
         message: "User not found",
@@ -230,18 +377,21 @@ const deleteUser = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      message: `User with ID ${user_id} deleted successfully`,
+      message: `User with ID ${user_id} has been soft deleted (is_active = 1)`,
     });
   } catch (error) {
     // Rollback transaction on error
     await pool.query("ROLLBACK");
-    console.error("Error deleting user:", error);
+    console.error("Error soft deleting user:", error);
     res.status(500).json({
       status: "error",
       message: "Internal Server Error",
     });
   }
 };
+
+
+
 const updateUser = async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -605,16 +755,24 @@ const getSubjects = async (req, res) => {
     });
   }
 };
-
 const getUsers = async (req, res) => {
   try {
     // Execute the query to fetch all users with their roles by joining the `users`, `user_roles`, and `roles` tables
     const result = await pool.query(`
-      SELECT users.user_id, users.password, users.first_name, users.last_name, users.email, users.id_number, users.mode, roles.role_name
+      SELECT 
+        users.user_id, 
+        users.password, 
+        users.first_name, 
+        users.last_name, 
+        users.email, 
+        users.id_number, 
+        users.mode, 
+        roles.role_name
       FROM users
       LEFT JOIN user_roles ON users.user_id = user_roles.user_id
       LEFT JOIN roles ON user_roles.role_id = roles.role_id
       WHERE roles.role_name != 'admin'
+        AND users.is_active = 0
     `);
 
     // Check if data is found
@@ -632,6 +790,7 @@ const getUsers = async (req, res) => {
       .json({ status: "error", message: "Internal Server Error" });
   }
 };
+
 
 module.exports = {
   loginUser,

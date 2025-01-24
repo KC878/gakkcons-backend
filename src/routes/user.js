@@ -33,7 +33,7 @@ user.put("/profile/update", checkAuth, updateProfile);
 user.put("/profile/mode/update", checkAuth, updatePreferMode);
 user.get("/subjects", getSubjects);
 user.get('/getUsers', getUsers);
-user.delete('/delete/:user_id', checkAuth, deleteUser);
+user.put('/delete/:user_id', checkAuth, deleteUser);
 user.put("/edit/:user_id", checkAuth, updateUser);
 
 
