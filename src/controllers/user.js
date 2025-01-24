@@ -67,7 +67,7 @@ const signupUser = async (req, res) => {
       email,
       userType,
       id_number,
-      subjectId,
+      // subjectId,
     } = req.body;
 
     await pool.query("BEGIN");
@@ -102,28 +102,26 @@ const signupUser = async (req, res) => {
 
     const expirationTime = new Date(Date.now() + 60 * 60 * 1000);
 
-    if (userType === "student") {
-      await pool.query(userQueries.saveVerificationCode, [
-        newUserId,
-        verificationCode,
-        expirationTime,
-        "signup_verify_user",
-      ]);
+    await pool.query(userQueries.saveVerificationCode, [
+      newUserId,
+      verificationCode,
+      expirationTime,
+      "signup_verify_user",
+    ]);
 
-      const subject = "Sign Up Verification Code";
-      const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
+    const subject = "Sign Up Verification Code";
+    const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
 
-      await sendEmail(email, subject, text);
-    }
+    await sendEmail(email, subject, text);
 
     await pool.query(userQueries.assignUserRole, [
       newUserId,
       userType === "faculty" ? 2 : userType === "admin" ? 1 : 3,
     ]);
 
-    if (userType === "faculty") {
-      await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
-    }
+    // if (userType === "faculty") {
+    //   await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
+    // }
 
     await pool.query("COMMIT");
 
@@ -131,6 +129,167 @@ const signupUser = async (req, res) => {
       message: `User created successfully.`,
       userId: newUserId,
     });
+  } catch (err) {
+    await pool.query("ROLLBACK");
+    console.error(err.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
+const signupUserByAdmin = async (req, res) => {
+  try {
+    const {
+      password,
+      firstName,
+      lastName,
+      email,
+      userType,
+      id_number,
+      subjectId,
+    } = req.body;
+
+    await pool.query("BEGIN");
+
+    // Check if the email already exists
+    const emailCheckResult = await pool.query(userQueries.checkEmailExists, [
+      email,
+    ]);
+
+    if (emailCheckResult.rows.length > 0) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Email already exists" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create the user
+    const newUserResult = await pool.query(userQueries.createUser, [
+      hashedPassword,
+      firstName,
+      lastName,
+      email,
+      id_number || null, // Handle optional ID number
+    ]);
+
+    if (newUserResult.rows.length === 0) {
+      throw new Error("Failed to create user");
+    }
+
+    const newUserId = newUserResult.rows[0].user_id;
+
+    // Assign the user role
+    await pool.query(userQueries.assignUserRole, [
+      newUserId,
+      userType === "faculty" ? 2 : userType === "admin" ? 1 : 3,
+    ]);
+
+    // Assign subject if the user is faculty
+    if (userType === "faculty" && subjectId) {
+      await pool.query(userQueries.assignSubject, [newUserId, subjectId]);
+    }
+
+    await pool.query("COMMIT");
+
+    res.status(201).json({
+      message: `User created successfully by admin.`,
+      userId: newUserId,
+    });
+  } catch (err) {
+    await pool.query("ROLLBACK");
+    console.error(err.message);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  const { user_id } = req.params; // Assuming `user_id` is passed as a URL parameter
+
+  try {
+    // Begin transaction
+    await pool.query("BEGIN");
+
+    // Delete user by ID (cascades will handle related records)
+    const deleteQuery = `
+      DELETE FROM users
+      WHERE user_id = $1
+    `;
+    const result = await pool.query(deleteQuery, [user_id]);
+
+    if (result.rowCount === 0) {
+      // If no rows were deleted, return a 404 error
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    // Commit transaction
+    await pool.query("COMMIT");
+
+    res.status(200).json({
+      status: "success",
+      message: `User with ID ${user_id} deleted successfully`,
+    });
+  } catch (error) {
+    // Rollback transaction on error
+    await pool.query("ROLLBACK");
+    console.error("Error deleting user:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
+  }
+};
+const updateUser = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { first_name, last_name, email, password, id_number, subject_id } =
+      req.body;
+
+    await pool.query("BEGIN");
+
+    // If password is provided, hash it
+    let hashedPassword = null;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    // Construct the base UPDATE query
+    let updateQuery = `
+      UPDATE users
+      SET first_name = $1, last_name = $2, email = $3, id_number = $4
+    `;
+    let values = [first_name, last_name, email, id_number || null];
+
+    // Conditionally add password to the query if it exists
+    if (password) {
+      updateQuery += `, password = $5`;
+      values.push(hashedPassword); // Push the hashed password
+    }
+
+    // Finalizing the query with the WHERE clause
+    updateQuery += ` WHERE user_id = $${values.length + 1} RETURNING user_id`;
+    values.push(user_id); // Add the user_id to the values array
+
+    const result = await pool.query(updateQuery, values);
+
+    if (result.rows.length === 0) {
+      throw new Error("User not found");
+    }
+
+    // If the user is a faculty and subject_id is provided, update subject
+    if (subject_id) {
+      await pool.query(
+        "UPDATE user_subjects SET subject_id = $1 WHERE user_id = $2",
+        [subject_id, user_id]
+      );
+    }
+
+    await pool.query("COMMIT");
+
+    res.status(200).json({ message: "User updated successfully" });
   } catch (err) {
     await pool.query("ROLLBACK");
     console.error(err.message);
@@ -428,6 +587,52 @@ const updatePreferMode = async (req, res) => {
   }
 };
 
+const getSubjects = async (req, res) => {
+  try {
+    // Query to get all subjects
+    const result = await pool.query("SELECT * FROM subjects");
+
+    // Send the subjects as a response
+    res.status(200).json({
+      status: "success",
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error("Error fetching subjects:", err.message);
+    res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
+  }
+};
+
+const getUsers = async (req, res) => {
+  try {
+    // Execute the query to fetch all users with their roles by joining the `users`, `user_roles`, and `roles` tables
+    const result = await pool.query(`
+      SELECT users.user_id, users.password, users.first_name, users.last_name, users.email, users.id_number, users.mode, roles.role_name
+      FROM users
+      LEFT JOIN user_roles ON users.user_id = user_roles.user_id
+      LEFT JOIN roles ON user_roles.role_id = roles.role_id
+      WHERE roles.role_name != 'admin'
+    `);
+
+    // Check if data is found
+    if (result.rows.length > 0) {
+      return res.status(200).json({ status: "success", data: result.rows });
+    } else {
+      return res
+        .status(404)
+        .json({ status: "error", message: "No users found" });
+    }
+  } catch (err) {
+    console.error("Error fetching users:", err.message);
+    return res
+      .status(500)
+      .json({ status: "error", message: "Internal Server Error" });
+  }
+};
+
 module.exports = {
   loginUser,
   signupUser,
@@ -438,4 +643,9 @@ module.exports = {
   updateProfile,
   updatePreferMode,
   changePassword,
+  signupUserByAdmin,
+  getSubjects,
+  getUsers,
+  deleteUser,
+  updateUser,
 };

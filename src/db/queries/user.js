@@ -18,6 +18,13 @@ const createUser = `
   RETURNING user_id;
 `;
 
+const createUserByAdmin = `
+  INSERT INTO Users (password, first_name, last_name, email, id_number, subject)
+  VALUES ($1, $2, $3, $4, $5, $6)
+  RETURNING user_id;
+`;
+
+
 const getUserVerification = `
   SELECT * FROM user_verifications WHERE user_id = $1 AND code_type = $2
 `;
@@ -73,6 +80,9 @@ WHERE
   user_id = $2;
 `;
 
+
+
+
 module.exports = {
   getUserByEmail,
   createUser,
@@ -86,4 +96,5 @@ module.exports = {
   getUserById,
   updatePreferModeQuery,
   assignSubject,
+  createUserByAdmin,
 };

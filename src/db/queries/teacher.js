@@ -1,7 +1,7 @@
 const getTeachersQuery = (search) => `
   SELECT 
     u.first_name || ' ' || u.last_name AS name,
-    u.mode as faculty_mode, 
+    u.mode AS faculty_mode, 
     ur.role_id, 
     ur.user_id,
     ud.department_name AS college_department,
@@ -13,7 +13,12 @@ const getTeachersQuery = (search) => `
               'appointment_id', a.appointment_id,
               'mode', m.mode,
               'status', st.status,
-              'scheduled_date', a.scheduled_date
+              'scheduled_date', a.scheduled_date,
+              'student', json_build_object(
+                'student_id', st_user.user_id,
+                'first_name', st_user.first_name,
+                'last_name', st_user.last_name
+              )
             )
         END
       ) FILTER (WHERE a.appointment_id IS NOT NULL),
@@ -40,6 +45,8 @@ const getTeachersQuery = (search) => `
   LEFT JOIN 
     appointments a ON a.faculty_id = u.user_id
   LEFT JOIN 
+    users st_user ON a.student_id = st_user.user_id -- Join for student details
+  LEFT JOIN 
     mode m ON a.mode_id = m.mode_id
   LEFT JOIN 
     status st ON a.status_id = st.status_id
@@ -65,6 +72,7 @@ const getTeachersQuery = (search) => `
   ORDER BY 
     u.first_name;
 `;
+
 
 const searchTeacher = async (query) => {
   const client = await pool.connect();

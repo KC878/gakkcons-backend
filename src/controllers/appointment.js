@@ -138,8 +138,8 @@ const updateMeetingLink = async (req, res) => {
       meet_link,
       mode_id,
       scheduled_date,
-      appointment_id,
       updated_at,
+      appointment_id,
     ]);
 
     if (result.rowCount === 0) {
@@ -308,7 +308,6 @@ const getAppointmentsAnalytics = async (req, res) => {
     };
 
     const appointments = result.rows
-      .filter((row) => row.appointment_status === "Confirmed") // Only include confirmed appointments
       .map((row) => ({
         appointment_id: row.appointment_id,
         reason: row.reason,
@@ -317,6 +316,8 @@ const getAppointmentsAnalytics = async (req, res) => {
         consultation_mode: row.consultation_mode,
         instructor_first_name: row.instructor_first_name,
         instructor_last_name: row.instructor_last_name,
+        student_firstname: row.student_first_name,
+        student_lastname: row.student_last_name,
         appointment_status: row.appointment_status,
       }));
 
