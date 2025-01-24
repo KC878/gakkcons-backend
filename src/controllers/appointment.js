@@ -138,8 +138,8 @@ const updateMeetingLink = async (req, res) => {
       meet_link,
       mode_id,
       scheduled_date,
-      appointment_id,
       updated_at,
+      appointment_id,
     ]);
 
     if (result.rowCount === 0) {

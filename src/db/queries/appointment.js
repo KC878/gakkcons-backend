@@ -122,9 +122,10 @@ SET
   status_id = $1,   
   meet_link = $2,
   mode_id = $3,
-  scheduled_date = $4
+  scheduled_date = $4,
+  updated_at = $5   
 WHERE 
-  appointment_id = $5
+  appointment_id = $6
 RETURNING *;
 
 `;
