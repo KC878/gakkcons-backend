@@ -6,7 +6,7 @@ const { getSocket } = require("../utils/socketIO");
 const getAppointments = async (req, res) => {
   try {
     let result;
-    if (req.user.user_role === 2) {
+    if (req.user.user_role === 1) {
       result = await pool.query(appointmentQueries.getAppointmentsByFaculty, [
         req.user.user_id,
       ]);
@@ -14,7 +14,7 @@ const getAppointments = async (req, res) => {
       result = await pool.query(appointmentQueries.getAppointmentsByStudent, [
         req.user.user_id,
       ]);
-    } else if (req.user.user_role === 1) {
+    } else if (req.user.user_role === 2) {
       result = await pool.query(appointmentQueries.getAppointmentsByAdmin);
     }
 
@@ -102,6 +102,7 @@ const requestAppointment = async (req, res) => {
   }
 };
 
+
 // const updateMeetingLink = async (req, res) => {
 //   const { appointment_id } = req.params;
 //   const { status, meet_link, mode, scheduled_date } = req.body;
@@ -115,6 +116,8 @@ const requestAppointment = async (req, res) => {
 
 //   try {
 //     await pool.query("BEGIN");
+
+//     // Validate status
 //     const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [
 //       status,
 //     ]);
@@ -133,6 +136,20 @@ const requestAppointment = async (req, res) => {
 //     const mode_id = modeResult.rows[0].mode_id;
 //     const updated_at = new Date();
 
+//     // Check for overlapping appointments
+//     const overlapResult = await pool.query(
+//       `SELECT appointment_id FROM appointments 
+//        WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' AND $1::timestamp + INTERVAL '1 hour' 
+//        AND appointment_id != $2`,
+//       [scheduled_date, appointment_id]
+//     );
+
+//     let warning = null;
+//     if (overlapResult.rowCount > 0) {
+//       warning = "There are other appointments scheduled within 1 hour of this time.";
+//     }
+
+//     // Update the appointment
 //     const result = await pool.query(appointmentQueries.updateMeetingLinkQuery, [
 //       status_id,
 //       meet_link,
@@ -143,6 +160,7 @@ const requestAppointment = async (req, res) => {
 //     ]);
 
 //     if (result.rowCount === 0) {
+//       await pool.query("ROLLBACK");
 //       return res.status(404).json({ message: "Appointment not found." });
 //     }
 
@@ -167,6 +185,7 @@ const requestAppointment = async (req, res) => {
 //     res.status(200).json({
 //       message: "Meeting link and scheduled date updated successfully.",
 //       appointment: updatedAppointment,
+//       warning,
 //     });
 //   } catch (error) {
 //     await pool.query("ROLLBACK");
@@ -210,17 +229,18 @@ const updateMeetingLink = async (req, res) => {
     const mode_id = modeResult.rows[0].mode_id;
     const updated_at = new Date();
 
-    // Check for overlapping appointments
-    const overlapResult = await pool.query(
-      `SELECT appointment_id FROM appointments 
-       WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' AND $1::timestamp + INTERVAL '1 hour' 
-       AND appointment_id != $2`,
-      [scheduled_date, appointment_id]
-    );
+  const confirmedOverlapResult = await pool.query(
+    `SELECT appointment_id FROM appointments 
+    WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' 
+    AND $1::timestamp + INTERVAL '1 hour' 
+    AND appointment_id != $2 
+    AND status_id = (SELECT status_id FROM status WHERE status = 'Confirmed')`,
+    [scheduled_date, appointment_id]
+  );
 
     let warning = null;
-    if (overlapResult.rowCount > 0) {
-      warning = "There are other appointments scheduled within 1 hour of this time.";
+    if (confirmedOverlapResult.rowCount > 0) {
+      warning = "Warning: There are confirmed appointments within 1 hour of this time.";
     }
 
     // Update the appointment
