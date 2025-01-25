@@ -98,3 +98,38 @@ WHERE NOT EXISTS (
     FROM Status
     WHERE Status.status = new_statuses.status
 );
+
+
+-- Replace the hashed password with the actual bcrypt hash generated earlier
+INSERT INTO users (password, first_name, last_name, email, is_active)
+SELECT 
+    '$2b$10$Olvkf5SecXe3wD6bergCyOC8YgJnlU.5xExeZdGuOkk7oUEzCHmU.', 
+    'Admin',
+    'User',
+    'gakkcons@gmail.com',
+    TRUE
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM users
+    WHERE email = 'gakkcons@gmail.com'
+);
+
+WITH AdminRole AS (
+    SELECT role_id
+    FROM roles
+    WHERE role_name = 'admin'
+),
+AdminUser AS (
+    SELECT user_id
+    FROM users
+    WHERE email = 'gakkcons@gmail.com'
+)
+INSERT INTO user_roles (user_id, role_id)
+SELECT user_id, role_id
+FROM AdminUser, AdminRole
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM user_roles
+    WHERE user_id = (SELECT user_id FROM AdminUser)
+    AND role_id = (SELECT role_id FROM AdminRole)
+);
