@@ -6,15 +6,15 @@ const { getSocket } = require("../utils/socketIO");
 const getAppointments = async (req, res) => {
   try {
     let result;
-    if (req.user.user_role === 1) {
+    if (req.user.user_role === "faculty") {
       result = await pool.query(appointmentQueries.getAppointmentsByFaculty, [
         req.user.user_id,
       ]);
-    } else if (req.user.user_role === 3) {
+    } else if (req.user.user_role === "student") {
       result = await pool.query(appointmentQueries.getAppointmentsByStudent, [
         req.user.user_id,
       ]);
-    } else if (req.user.user_role === 2) {
+    } else if (req.user.user_role === "admin") {
       result = await pool.query(appointmentQueries.getAppointmentsByAdmin);
     }
 
@@ -102,7 +102,6 @@ const requestAppointment = async (req, res) => {
   }
 };
 
-
 // const updateMeetingLink = async (req, res) => {
 //   const { appointment_id } = req.params;
 //   const { status, meet_link, mode, scheduled_date } = req.body;
@@ -138,8 +137,8 @@ const requestAppointment = async (req, res) => {
 
 //     // Check for overlapping appointments
 //     const overlapResult = await pool.query(
-//       `SELECT appointment_id FROM appointments 
-//        WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' AND $1::timestamp + INTERVAL '1 hour' 
+//       `SELECT appointment_id FROM appointments
+//        WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' AND $1::timestamp + INTERVAL '1 hour'
 //        AND appointment_id != $2`,
 //       [scheduled_date, appointment_id]
 //     );
@@ -229,18 +228,19 @@ const updateMeetingLink = async (req, res) => {
     const mode_id = modeResult.rows[0].mode_id;
     const updated_at = new Date();
 
-  const confirmedOverlapResult = await pool.query(
-    `SELECT appointment_id FROM appointments 
+    const confirmedOverlapResult = await pool.query(
+      `SELECT appointment_id FROM appointments 
     WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' 
     AND $1::timestamp + INTERVAL '1 hour' 
     AND appointment_id != $2 
     AND status_id = (SELECT status_id FROM status WHERE status = 'Confirmed')`,
-    [scheduled_date, appointment_id]
-  );
+      [scheduled_date, appointment_id]
+    );
 
     let warning = null;
     if (confirmedOverlapResult.rowCount > 0) {
-      warning = "Warning: There are confirmed appointments within 1 hour of this time.";
+      warning =
+        "Warning: There are confirmed appointments within 1 hour of this time.";
     }
 
     // Update the appointment
@@ -289,7 +289,6 @@ const updateMeetingLink = async (req, res) => {
       .json({ message: "Internal Server Error", error: error.message });
   }
 };
-
 
 const rejectAppointments = async (req, res) => {
   const { appointment_id } = req.params;
@@ -421,19 +420,18 @@ const getAppointmentsAnalytics = async (req, res) => {
       completed_appointments: result.rows[0].completed_appointments,
     };
 
-    const appointments = result.rows
-      .map((row) => ({
-        appointment_id: row.appointment_id,
-        reason: row.reason,
-        appointment_date: row.appointment_date,
-        appointment_time: row.appointment_time,
-        consultation_mode: row.consultation_mode,
-        instructor_first_name: row.instructor_first_name,
-        instructor_last_name: row.instructor_last_name,
-        student_firstname: row.student_first_name,
-        student_lastname: row.student_last_name,
-        appointment_status: row.appointment_status,
-      }));
+    const appointments = result.rows.map((row) => ({
+      appointment_id: row.appointment_id,
+      reason: row.reason,
+      appointment_date: row.appointment_date,
+      appointment_time: row.appointment_time,
+      consultation_mode: row.consultation_mode,
+      instructor_first_name: row.instructor_first_name,
+      instructor_last_name: row.instructor_last_name,
+      student_firstname: row.student_first_name,
+      student_lastname: row.student_last_name,
+      appointment_status: row.appointment_status,
+    }));
 
     // Respond with the structured data
     res.json({

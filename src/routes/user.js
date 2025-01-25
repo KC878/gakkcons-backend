@@ -16,7 +16,7 @@ const {
   getUsers,
   deleteUser,
   updateUser,
-  
+  updateUserActivationStatus,
 } = require("../controllers/user");
 
 const user = express.Router();
@@ -32,10 +32,9 @@ user.get("/profile", checkAuth, getProfile);
 user.put("/profile/update", checkAuth, updateProfile);
 user.put("/profile/mode/update", checkAuth, updatePreferMode);
 user.get("/subjects", getSubjects);
-user.get('/getUsers', getUsers);
-user.put('/delete/:user_id', checkAuth, deleteUser);
+user.get("/getUsers", getUsers);
+user.put("/delete/:user_id", checkAuth, deleteUser);
 user.put("/edit/:user_id", checkAuth, updateUser);
-
-
+user.put("/activation-status/update", checkAuth, updateUserActivationStatus);
 
 module.exports = user;

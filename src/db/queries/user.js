@@ -1,13 +1,17 @@
 const getUserByEmail = `
   SELECT 
     Users.*,
-    User_Roles.role_id
+    Roles.role_name
   FROM 
     Users
   LEFT JOIN 
     User_Roles 
   ON 
     Users.user_id = User_Roles.user_id
+  LEFT JOIN 
+    Roles
+  ON 
+    User_Roles.role_id = Roles.role_id
   WHERE 
     Users.email = $1;
 `;
@@ -24,7 +28,6 @@ const createUserByAdmin = `
   RETURNING user_id;
 `;
 
-
 const getUserVerification = `
   SELECT * FROM user_verifications WHERE user_id = $1 AND code_type = $2
 `;
@@ -34,9 +37,12 @@ const checkEmailExists = `
 `;
 
 const assignUserRole = `
-    INSERT INTO User_Roles (user_id, role_id)
-    VALUES ($1, $2);
-  `;
+  INSERT INTO User_Roles (user_id, role_id)
+  VALUES (
+    $1, 
+    (SELECT role_id FROM Roles WHERE role_name = $2)
+  );
+`;
 
 const assignSubject = `
   INSERT INTO User_Subjects (user_id, subject_id)
@@ -61,15 +67,19 @@ const updateUserPassword = `
 
 const getUserById = `
   SELECT
-    user_id, 
-    email,
-    first_name,
-    last_name,
-    password,
-    id_number,
-    mode
-  FROM Users
-  WHERE user_id = $1;  
+    u.user_id, 
+    u.email,
+    u.first_name,
+    u.last_name,
+    u.password,
+    u.id_number,
+    u.mode,
+    u.is_active,  
+    r.role_name
+  FROM Users u
+  LEFT JOIN User_Roles ur ON u.user_id = ur.user_id
+  LEFT JOIN Roles r ON ur.role_id = r.role_id
+  WHERE u.user_id = $1;
 `;
 
 const updatePreferModeQuery = `
@@ -80,9 +90,17 @@ WHERE
   user_id = $2;
 `;
 
+const updateUserActivationStatus = `
+  UPDATE users
+  SET is_active = $2
+  WHERE user_id = $1 AND is_active != $2;
+`;
 
-
-
+const updateUserActivationStatusToTrue = `
+  UPDATE users
+  SET is_active = TRUE
+  WHERE user_id = $1
+`;
 module.exports = {
   getUserByEmail,
   createUser,
@@ -97,4 +115,6 @@ module.exports = {
   updatePreferModeQuery,
   assignSubject,
   createUserByAdmin,
+  updateUserActivationStatus,
+  updateUserActivationStatusToTrue,
 };

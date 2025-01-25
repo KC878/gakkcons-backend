@@ -5,8 +5,8 @@ const userQueries = require("./../db/queries/user");
 const pool = require("./../db/pool");
 const generateVerificationCode = require("../utils/generateCode");
 const sendEmail = require("../utils/sendEmail");
+const { getSocket } = require("../utils/socketIO");
 //Login
-
 
 const loginUser = async (req, res) => {
   try {
@@ -22,11 +22,6 @@ const loginUser = async (req, res) => {
 
     if (userResult.rows.length === 0) {
       return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    // Check if the user is active (if is_active == 1, return error)
-    if (user.is_active === 1) {
-      return res.status(400).json({ message: "User account is currently active." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -46,13 +41,19 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "User is not verified yet." });
     }
 
+    if (!user.is_active) {
+      return res.status(400).json({
+        message:
+          "Your account is currently deactivated. Please contact admin for support.",
+      });
+    }
+
     const token = jwt.sign(
-      { user_id: user.user_id, email: user.email, user_role: user.role_id },
+      { user_id: user.user_id, email: user.email, user_role: user.role_name },
       process.env.JWT_SECRET
     );
 
-    const userType =
-      user.role_id === 1 ? "faculty" : user.role_id === 2 ? "admin" : "student";
+    const userType = user.role_name;
 
     res.status(200).json({
       message: "Login successful",
@@ -65,18 +66,10 @@ const loginUser = async (req, res) => {
   }
 };
 
-
-
 const signupUser = async (req, res) => {
   try {
-    const {
-      password,
-      firstName,
-      lastName,
-      email,
-      userType,
-      id_number
-    } = req.body;
+    const { password, firstName, lastName, email, userType, id_number } =
+      req.body;
 
     await pool.query("BEGIN");
 
@@ -110,23 +103,19 @@ const signupUser = async (req, res) => {
 
     const expirationTime = new Date(Date.now() + 60 * 60 * 1000);
 
-      await pool.query(userQueries.saveVerificationCode, [
-        newUserId,
-        verificationCode,
-        expirationTime,
-        "signup_verify_user",
-      ]);
-
-      const subject = "Sign Up Verification Code";
-      const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
-
-      await sendEmail(email, subject, text);
-    
-
-    await pool.query(userQueries.assignUserRole, [
+    await pool.query(userQueries.saveVerificationCode, [
       newUserId,
-      userType === "faculty" ? 1 : userType === "admin" ? 2 : 3,
+      verificationCode,
+      expirationTime,
+      "signup_verify_user",
     ]);
+
+    const subject = "Sign Up Verification Code";
+    const text = `Welcome! Use the verification code below to complete your sign-up process:\n\nVerification Code: ${verificationCode}\n\nThis code will expire in 1 hour.`;
+
+    await sendEmail(email, subject, text);
+
+    await pool.query(userQueries.assignUserRole, [newUserId, userType]);
 
     await pool.query("COMMIT");
 
@@ -140,7 +129,6 @@ const signupUser = async (req, res) => {
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
-
 
 // with default password 2025@lastname
 const signupUserByAdmin = async (req, res) => {
@@ -191,10 +179,7 @@ const signupUserByAdmin = async (req, res) => {
     const newUserId = newUserResult.rows[0].user_id;
 
     // Assign the user role
-    await pool.query(userQueries.assignUserRole, [
-      newUserId,
-      userType === "faculty" ? 1 : userType === "admin" ? 2 : 3,
-    ]);
+    await pool.query(userQueries.assignUserRole, [newUserId, userType]);
 
     // Assign subject if the user is faculty
     if (userType === "faculty" && subjectId) {
@@ -215,20 +200,19 @@ const signupUserByAdmin = async (req, res) => {
   }
 };
 
-
 const deleteUser = async (req, res) => {
   const { user_id } = req.params; // Assuming `user_id` is passed as a URL parameter
 
   try {
     // Begin transaction
-    await pool.query('BEGIN');
+    await pool.query("BEGIN");
 
     const updateQuery = `
       UPDATE users
       SET is_active = 1
       WHERE user_id = $1
     `;
-    
+
     const result = await pool.query(updateQuery, [user_id]);
 
     if (result.rowCount === 0) {
@@ -257,11 +241,49 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const updateUserActivationStatus = async (req, res) => {
+  const { user_id, is_active } = req.body;
+  const io = getSocket();
+
+  try {
+    await pool.query("BEGIN");
+
+    const result = await pool.query(userQueries.updateUserActivationStatus, [
+      user_id,
+      is_active,
+    ]);
+
+    if (result.rowCount === 0) {
+      await pool.query("ROLLBACK");
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+    io.to(user_id).emit("user_status", {
+      is_active: is_active,
+    });
+    await pool.query("COMMIT");
+
+    res.status(200).json({
+      status: "success",
+      message: `User with ID ${user_id} has successfully updated activation status`,
+    });
+  } catch (error) {
+    await pool.query("ROLLBACK");
+    console.error("Error soft deleting user:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
+  }
+};
 
 const updateUser = async (req, res) => {
   try {
     const { user_id } = req.params;
-    const { first_name, last_name, email, password, id_number, subject_id } = req.body;
+    const { first_name, last_name, email, password, id_number, subject_id } =
+      req.body;
 
     await pool.query("BEGIN");
 
@@ -281,12 +303,12 @@ const updateUser = async (req, res) => {
     // Conditionally add password to the query if it exists
     if (password) {
       updateQuery += `, password = $5`;
-      values.push(hashedPassword);  // Push the hashed password
+      values.push(hashedPassword); // Push the hashed password
     }
 
     // Finalizing the query with the WHERE clause
     updateQuery += ` WHERE user_id = $${values.length + 1} RETURNING user_id`;
-    values.push(user_id);  // Add the user_id to the values array
+    values.push(user_id); // Add the user_id to the values array
 
     const result = await pool.query(updateQuery, values);
 
@@ -296,7 +318,10 @@ const updateUser = async (req, res) => {
 
     // If the user is a faculty and subject_id is provided, update subject
     if (subject_id) {
-      await pool.query('UPDATE user_subjects SET subject_id = $1 WHERE user_id = $2', [subject_id, user_id]);
+      await pool.query(
+        "UPDATE user_subjects SET subject_id = $1 WHERE user_id = $2",
+        [subject_id, user_id]
+      );
     }
 
     await pool.query("COMMIT");
@@ -308,9 +333,6 @@ const updateUser = async (req, res) => {
     res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
 };
-
-
-
 
 const verifyUser = async (req, res) => {
   try {
@@ -338,6 +360,10 @@ const verifyUser = async (req, res) => {
         .status(400)
         .json({ message: "Verification code has expired." });
     }
+
+    await pool.query(userQueries.updateUserActivationStatusToTrue, [
+      user.user_id,
+    ]);
 
     await pool.query(userQueries.deleteVerificationCode, [user.user_id]);
 
@@ -495,6 +521,8 @@ const getProfile = async (req, res) => {
       last_name: rows[0].last_name,
       id_number: rows[0].id_number,
       mode: rows[0].mode,
+      is_active: rows[0].is_active,
+      role: rows[0].role_name,
     });
   } catch (err) {
     console.error("Error fetching profile info:", err);
@@ -621,7 +649,6 @@ const getSubjects = async (req, res) => {
   }
 };
 
-
 const getUsers = async (req, res) => {
   try {
     // Execute the query to fetch all users with their roles by joining the `users`, `user_roles`, and `roles` tables
@@ -633,13 +660,13 @@ const getUsers = async (req, res) => {
         users.last_name, 
         users.email, 
         users.id_number, 
-        users.mode, 
+        users.mode,
+        users.is_active, 
         roles.role_name
       FROM users
       LEFT JOIN user_roles ON users.user_id = user_roles.user_id
       LEFT JOIN roles ON user_roles.role_id = roles.role_id
       WHERE roles.role_name != 'admin'
-        AND users.is_active = 0
     `);
 
     // Check if data is found
@@ -658,8 +685,6 @@ const getUsers = async (req, res) => {
   }
 };
 
-
-
 module.exports = {
   loginUser,
   signupUser,
@@ -674,5 +699,6 @@ module.exports = {
   getSubjects,
   getUsers,
   deleteUser,
-  updateUser
+  updateUser,
+  updateUserActivationStatus,
 };
