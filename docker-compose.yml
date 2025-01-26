@@ -36,6 +36,7 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - TZ=Asia/Singapore
     volumes:
       - ./db_data:/var/lib/postgresql/data
     networks:
@@ -50,3 +51,4 @@ services:
 networks:
   app-network:
     driver: bridge
+    
