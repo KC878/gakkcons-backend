@@ -4,6 +4,7 @@ const getTeachersQuery = (search) => `
     u.mode AS faculty_mode, 
     ur.role_id, 
     ur.user_id,
+    r.role_name,
     ud.department_name AS college_department,
     COALESCE(
       json_agg(
@@ -40,6 +41,8 @@ const getTeachersQuery = (search) => `
     users u
   JOIN 
     user_roles ur ON ur.user_id = u.user_id
+  JOIN 
+    roles r ON ur.role_id = r.role_id
   LEFT JOIN 
     college_department ud ON ud.department_head_id = u.user_id
   LEFT JOIN 
@@ -55,8 +58,8 @@ const getTeachersQuery = (search) => `
   LEFT JOIN 
     subjects s ON us.subject_id = s.subject_id
   WHERE 
-    ur.role_id = 1
-    AND (u.mode IN ('Onsite', 'Online'))
+    r.role_name = 'faculty'
+    AND (u.mode IN ('Onsite', 'Online')
     ${
       search
         ? `
@@ -68,11 +71,10 @@ const getTeachersQuery = (search) => `
         : ""
     }
   GROUP BY 
-    u.user_id, ur.role_id, ur.user_id, ud.department_name
+    u.user_id, ur.role_id, ur.user_id, ud.department_name, r.role_name
   ORDER BY 
     u.first_name;
 `;
-
 
 const searchTeacher = async (query) => {
   const client = await pool.connect();
