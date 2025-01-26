@@ -59,7 +59,7 @@ const getTeachersQuery = (search) => `
     subjects s ON us.subject_id = s.subject_id
   WHERE 
     r.role_name = 'faculty'
-    AND (u.mode IN ('Onsite', 'Online')
+    AND u.mode IN ('Onsite', 'Online')
     ${
       search
         ? `
