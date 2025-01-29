@@ -6,10 +6,10 @@ const getNotifications = `
     m.mode,  
     s.status,  
     a.reason,  
-    a.scheduled_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' AS scheduled_date,
+    a.scheduled_date,
     a.meet_link, 
-    a.timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' AS timestamp,
-    a.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Manila' AS updated_at
+    a.timestamp,
+    a.updated_at
   FROM Appointments a
   JOIN Users u1 ON a.student_id = u1.user_id
   JOIN Users u2 ON a.faculty_id = u2.user_id  
