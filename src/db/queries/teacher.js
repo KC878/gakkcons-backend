@@ -75,6 +75,7 @@ const getTeachersQuery = (search) => `
     u.first_name;
 `;
 
+
 const searchTeacher = async (query) => {
   const client = await pool.connect();
   try {
