@@ -59,24 +59,48 @@ const requestAppointment = async (req, res) => {
 
     await pool.query("BEGIN");
 
-    const recentAppointment = await pool.query(
-      appointmentQueries.checkRecentAppointment,
-      [studentId, facultyId]
-    );
+    // const recentAppointment = await pool.query(
+    //   appointmentQueries.checkRecentAppointment,
+    //   [studentId, facultyId]
+    // );
 
-    if (recentAppointment.rows.length > 0) {
-      const recentScheduledDate = moment(
-        recentAppointment.rows[0].scheduled_date
-      );
-      const now = moment();
+    // if (recentAppointment.rows.length > 0) {
+    //   const recentScheduledDate = moment.utc(
+    //     recentAppointment.rows[0].scheduled_date
+    //   );
+    //   const now = moment();
 
-      if (recentScheduledDate.isSameOrAfter(now, "day")) {
-        return res.status(400).json({
-          message:
-            "You are not allowed to request an appointment with the same instructor twice in a day. Please try again tomorrow.",
-        });
-      }
-    }
+    //   if (recentScheduledDate.isAfter(now, "day")) {
+    //     return res.status(400).json({
+    //       message: `You already have an appointment on ${moment(
+    //         recentScheduledDate
+    //       ).format(
+    //         "MMM DD, YYYY [at] hh:mm A"
+    //       )}. Multiple appointment requests are not allowed.`,
+    //     });
+    //   }
+
+    //   const recentDate = moment(recentScheduledDate).utc().format("YYYY-MM-DD");
+    //   const nowDate = moment(now).utc().format("YYYY-MM-DD");
+
+    //   if (recentDate === nowDate) {
+    //     const isPast =
+    //       moment(recentScheduledDate).format("HH:mm") <
+    //       moment().format("HH:mm");
+
+    //     return res.status(400).json({
+    //       message: `${
+    //         isPast
+    //           ? `You already had an appointment earlier today at ${moment(
+    //               recentScheduledDate
+    //             ).format("hh:mm A")}`
+    //           : `You already have an appointment today on ${moment(
+    //               recentScheduledDate
+    //             ).format("hh:mm A")}`
+    //       }. Please try again tomorrow.`,
+    //     });
+    //   }
+    // }
 
     const statusName = "Pending";
 
@@ -101,7 +125,6 @@ const requestAppointment = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 // const updateMeetingLink = async (req, res) => {
 //   const { appointment_id } = req.params;
@@ -137,10 +160,10 @@ const requestAppointment = async (req, res) => {
 //     const updated_at = new Date();
 
 //     const confirmedOverlapResult = await pool.query(
-//       `SELECT appointment_id FROM appointments 
-//     WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour' 
-//     AND $1::timestamp + INTERVAL '1 hour' 
-//     AND appointment_id != $2 
+//       `SELECT appointment_id FROM appointments
+//     WHERE scheduled_date BETWEEN $1::timestamp - INTERVAL '1 hour'
+//     AND $1::timestamp + INTERVAL '1 hour'
+//     AND appointment_id != $2
 //     AND status_id = (SELECT status_id FROM status WHERE status = 'Confirmed')`,
 //       [scheduled_date, appointment_id]
 //     );
@@ -198,27 +221,32 @@ const requestAppointment = async (req, res) => {
 //   }
 // };
 
-
 const updateMeetingLink = async (req, res) => {
   const { appointment_id } = req.params;
   const { status, meet_link, mode, scheduled_date, isProceed } = req.body;
   const io = getSocket();
 
   if (!appointment_id || !status || !mode || !scheduled_date) {
-    return res.status(400).json({ message: "Invalid input. All fields are required." });
+    return res
+      .status(400)
+      .json({ message: "Invalid input. All fields are required." });
   }
 
   try {
     await pool.query("BEGIN");
 
     // Validate status and mode
-    const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [status]);
+    const statusResult = await pool.query(appointmentQueries.getStatusIdQuery, [
+      status,
+    ]);
     if (statusResult.rowCount === 0) {
       return res.status(400).json({ message: `Invalid status: ${status}` });
     }
     const status_id = statusResult.rows[0].status_id;
 
-    const modeResult = await pool.query(appointmentQueries.getModeIdQuery, [mode]);
+    const modeResult = await pool.query(appointmentQueries.getModeIdQuery, [
+      mode,
+    ]);
     if (modeResult.rowCount === 0) {
       return res.status(400).json({ message: `Invalid mode: ${mode}` });
     }
@@ -233,7 +261,8 @@ const updateMeetingLink = async (req, res) => {
 
     let warning = null;
     if (confirmedOverlapResult.rowCount > 0) {
-      warning = "Warning: Another confirmed appointment is scheduled at this exact time.";
+      warning =
+        "Warning: Another confirmed appointment is scheduled at this exact time.";
       if (!isProceed) {
         return res.status(200).json({ warning }); // Return warning without saving
       }
@@ -278,12 +307,11 @@ const updateMeetingLink = async (req, res) => {
   } catch (error) {
     await pool.query("ROLLBACK");
     console.error("Error updating meeting link:", error.message);
-    res.status(500).json({ message: "Internal Server Error", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 };
-
-
-
 
 const rejectAppointments = async (req, res) => {
   const { appointment_id } = req.params;
