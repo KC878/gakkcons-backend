@@ -59,48 +59,48 @@ const requestAppointment = async (req, res) => {
 
     await pool.query("BEGIN");
 
-    // const recentAppointment = await pool.query(
-    //   appointmentQueries.checkRecentAppointment,
-    //   [studentId, facultyId]
-    // );
+    const recentAppointment = await pool.query(
+      appointmentQueries.checkRecentAppointment,
+      [studentId, facultyId]
+    );
 
-    // if (recentAppointment.rows.length > 0) {
-    //   const recentScheduledDate = moment.utc(
-    //     recentAppointment.rows[0].scheduled_date
-    //   );
-    //   const now = moment();
+    if (recentAppointment.rows.length > 0) {
+      const recentScheduledDate = moment.utc(
+        recentAppointment.rows[0].scheduled_date
+      );
+      const now = moment();
 
-    //   if (recentScheduledDate.isAfter(now, "day")) {
-    //     return res.status(400).json({
-    //       message: `You already have an appointment on ${moment(
-    //         recentScheduledDate
-    //       ).format(
-    //         "MMM DD, YYYY [at] hh:mm A"
-    //       )}. Multiple appointment requests are not allowed.`,
-    //     });
-    //   }
+      if (recentScheduledDate.isAfter(now, "day")) {
+        return res.status(400).json({
+          message: `You already have an appointment on ${moment(
+            recentScheduledDate
+          ).format(
+            "MMM DD, YYYY [at] hh:mm A"
+          )}. Multiple appointment requests are not allowed.`,
+        });
+      }
 
-    //   const recentDate = moment(recentScheduledDate).utc().format("YYYY-MM-DD");
-    //   const nowDate = moment(now).utc().format("YYYY-MM-DD");
+      const recentDate = moment(recentScheduledDate).utc().format("YYYY-MM-DD");
+      const nowDate = moment(now).utc().format("YYYY-MM-DD");
 
-    //   if (recentDate === nowDate) {
-    //     const isPast =
-    //       moment(recentScheduledDate).format("HH:mm") <
-    //       moment().format("HH:mm");
+      if (recentDate === nowDate) {
+        const isPast =
+          moment(recentScheduledDate).format("HH:mm") <
+          moment().format("HH:mm");
 
-    //     return res.status(400).json({
-    //       message: `${
-    //         isPast
-    //           ? `You already had an appointment earlier today at ${moment(
-    //               recentScheduledDate
-    //             ).format("hh:mm A")}`
-    //           : `You already have an appointment today on ${moment(
-    //               recentScheduledDate
-    //             ).format("hh:mm A")}`
-    //       }. Please try again tomorrow.`,
-    //     });
-    //   }
-    // }
+        return res.status(400).json({
+          message: `${
+            isPast
+              ? `You already had an appointment earlier today at ${moment(
+                  recentScheduledDate
+                ).format("hh:mm A")}`
+              : `You already have an appointment today on ${moment(
+                  recentScheduledDate
+                ).format("hh:mm A")}`
+          }. Please try again tomorrow.`,
+        });
+      }
+    }
 
     const statusName = "Pending";
 
