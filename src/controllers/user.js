@@ -667,6 +667,7 @@ const getUsers = async (req, res) => {
       LEFT JOIN user_roles ON users.user_id = user_roles.user_id
       LEFT JOIN roles ON user_roles.role_id = roles.role_id
       WHERE roles.role_name != 'admin'
+      ORDER BY users.user_id DESC
     `);
 
     // Check if data is found
