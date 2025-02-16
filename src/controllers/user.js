@@ -609,7 +609,8 @@ const updateProfile = async (req, res) => {
 const updatePreferMode = async (req, res) => {
   try {
     const { preferMode } = req.body;
-
+    await pool.query("BEGIN");
+    const io = getSocket();
     // Extract user_id from token
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -620,11 +621,22 @@ const updatePreferMode = async (req, res) => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decodedToken.user_id;
 
+    io.emit("faculty_active_status");
+
+    if (preferMode === "offline") {
+      await pool.query(userQueries.updateUserLastActive, [userId]);
+    } else {
+      await pool.query(userQueries.updateUserLastActiveNull, [userId]);
+    }
+
     // Update the prefer mode
     await pool.query(userQueries.updatePreferModeQuery, [preferMode, userId]);
 
+    await pool.query("COMMIT");
+
     res.status(200).json({ message: "Mode updated successfully." });
   } catch (err) {
+    await pool.query("ROLLBACK");
     console.error(err);
     res.status(500).json({ message: "Internal Server Error" });
   }

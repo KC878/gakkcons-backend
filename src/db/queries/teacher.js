@@ -1,7 +1,8 @@
 const getTeachersQuery = (search) => `
   SELECT 
     u.first_name || ' ' || u.last_name AS name,
-    u.mode AS faculty_mode, 
+    u.mode AS faculty_mode,
+    u.last_active, 
     ur.role_id, 
     ur.user_id,
     r.role_name,
@@ -74,7 +75,6 @@ const getTeachersQuery = (search) => `
   ORDER BY 
     u.first_name;
 `;
-
 
 const searchTeacher = async (query) => {
   const client = await pool.connect();

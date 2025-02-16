@@ -90,6 +90,22 @@ WHERE
   user_id = $2;
 `;
 
+const updateUserLastActive = `
+UPDATE Users
+SET 
+  last_active = NOW() AT TIME ZONE 'Asia/Manila'
+WHERE 
+  user_id = $1;
+`;
+
+const updateUserLastActiveNull = `
+UPDATE Users
+SET 
+  last_active = NULL
+WHERE 
+  user_id = $1;
+`;
+
 const updateUserActivationStatus = `
   UPDATE users
   SET is_active = $2
@@ -113,6 +129,8 @@ module.exports = {
   updateUserPassword,
   getUserById,
   updatePreferModeQuery,
+  updateUserLastActive,
+  updateUserLastActiveNull,
   assignSubject,
   createUserByAdmin,
   updateUserActivationStatus,
