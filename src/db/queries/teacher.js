@@ -17,7 +17,7 @@ const getTeachersQuery = (search) => `
               'status', st.status,
               'scheduled_date', a.scheduled_date,
               'student', json_build_object(
-                'student_id', st_user.user_id,
+                'student_id', st_user.id_number,
                 'first_name', st_user.first_name,
                 'last_name', st_user.last_name
               )
