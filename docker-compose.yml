@@ -24,6 +24,7 @@ services:
       ["sh", "-c", "npm run db:migrate && npm run db:seed && npm run dev"]
     networks:
       - app-network
+    restart: always
 
   db:
     env_file: .env
